@@ -1,0 +1,291 @@
+/* NovaStelar CSS Engine - Advanced Gemini Theme */
+
+:root {
+    --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(124, 172, 248, 0.4);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(124, 172, 248, 0.6);
+}
+
+/* Animations & Transitions */
+.section-transition {
+    transition: all 0.3s var(--transition-curve);
+}
+
+#sidebar {
+    transition: margin-left 0.35s var(--transition-curve);
+    z-index: 50;
+}
+
+#sidebar.collapsed {
+    margin-left: -280px;
+}
+
+@keyframes aiGlow {
+    0% {
+        box-shadow: 0 0 10px rgba(124, 172, 248, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(124, 172, 248, 0.3);
+    }
+
+    100% {
+        box-shadow: 0 0 10px rgba(124, 172, 248, 0.1);
+    }
+}
+
+.ai-glow-pulse {
+    animation: aiGlow 3s infinite;
+}
+
+/* Loading Dots Animados Profesionales */
+.loader-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.loader-dots div {
+    width: 6px;
+    height: 6px;
+    background-color: #a8c7fa;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loader-dots div:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.loader-dots div:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Sugerencias Zero State */
+.suggestion-card {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    min-height: 120px;
+}
+
+.dark .suggestion-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.suggestion-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.dark .suggestion-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* --- Message Bubbles Minimalistas --- */
+.msg-bubble {
+    width: 100%;
+    display: flex;
+    gap: 16px;
+    line-height: 1.6;
+    font-size: 15px;
+    color: inherit;
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* User Message */
+.msg-user {
+    justify-content: flex-end;
+}
+
+.msg-user .bubble-content {
+    background: #eef1f5;
+    /* Light mode color */
+    color: #1a1a1a;
+    padding: 12px 20px;
+    border-radius: 24px;
+    border-top-right-radius: 6px;
+    max-width: 80%;
+    word-break: break-word;
+}
+
+.dark .msg-user .bubble-content {
+    background: #282a2c;
+    color: #f1f3f4;
+}
+
+/* AI Message */
+.msg-ai {
+    justify-content: flex-start;
+    gap: 16px;
+}
+
+.msg-ai .bubble-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: 1px solid rgba(124, 172, 248, 0.3);
+}
+
+.dark .msg-ai .bubble-avatar {
+    background: #1e1f20;
+}
+
+.msg-ai .bubble-content {
+    background: transparent;
+    padding: 0px 0;
+    max-width: 85%;
+    width: 100%;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- ESTILO PRO DE MARKDOWN (PROSE) --- */
+.markdown-body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.7;
+}
+
+.markdown-body p {
+    margin-bottom: 1em;
+}
+
+.markdown-body p:last-child {
+    margin-bottom: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+    font-weight: 600;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    color: #111;
+}
+
+.dark .markdown-body h1,
+.dark .markdown-body h2,
+.dark .markdown-body h3 {
+    color: #fff;
+}
+
+.markdown-body strong {
+    font-weight: 600;
+    color: #111;
+}
+
+.dark .markdown-body strong {
+    color: #fff;
+}
+
+.markdown-body ul {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin-bottom: 1em;
+}
+
+.markdown-body ol {
+    list-style-type: decimal;
+    padding-left: 20px;
+    margin-bottom: 1em;
+}
+
+.markdown-body li {
+    margin-bottom: 0.5em;
+}
+
+.markdown-body a {
+    color: #a8c7fa;
+    text-decoration: underline;
+}
+
+/* Code Blocks */
+.markdown-body pre {
+    background-color: #f5f5f5 !important;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 1.5em 0;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+}
+
+.dark .markdown-body pre {
+    background-color: #1e1e1e !important;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.markdown-body code {
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9em;
+}
+
+.dark .markdown-body code {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.markdown-body pre code {
+    background-color: transparent;
+    padding: 0;
+}
