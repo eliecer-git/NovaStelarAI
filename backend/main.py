@@ -419,14 +419,17 @@ class BrainHandler(BaseHTTPRequestHandler):
         
         self.wfile.write(json.dumps(response_json).encode('utf-8'))
 
-def run_server(port=8000):
-    server_address = ('', port)
+import os
+
+def run_server():
+    port = int(os.environ.get("PORT", 8000))
+    server_address = ('0.0.0.0', port)
     httpd = HTTPServer(server_address, BrainHandler)
-    print(f"🧠 Cerebro NovaStelar en línea - Escuchando el puerto {port}...")
+    print(f"🧠 Cerebro NovaStelar en línea - Puerto: {port}...")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nCerebro apagado por el usuario.")
+        print("\nCerebro apagado.")
         httpd.server_close()
 
 if __name__ == '__main__':
