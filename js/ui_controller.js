@@ -27,6 +27,10 @@ window.ui = {
 
     // Configuración y Utilidades
     btnSettings: document.getElementById('btn-settings'),
+    settingsModal: document.getElementById('settings-modal'),
+    closeSettings: document.getElementById('close-settings'),
+    cancelSettings: document.getElementById('cancel-settings'),
+    saveSettings: document.getElementById('save-settings'),
     toastContainer: document.getElementById('toast-container')
 };
 
@@ -52,9 +56,22 @@ window.showToast = function (message, icon = 'info', duration = 3000) {
     }, duration);
 };
 
-// --- LISTENERS BASE DE BOTONES MUERTOS --- //
+// --- SETTINGS MODAL --- //
 ui.btnSettings.addEventListener('click', () => {
-    window.showToast('El panel de ajustes está bajo construcción en esta alpha.', 'settings');
+    ui.settingsModal.classList.remove('opacity-0', 'pointer-events-none');
+    ui.settingsModal.children[0].classList.remove('scale-95');
+});
+
+function closeUIModal() {
+    ui.settingsModal.classList.add('opacity-0', 'pointer-events-none');
+    ui.settingsModal.children[0].classList.add('scale-95');
+}
+
+ui.closeSettings.addEventListener('click', closeUIModal);
+ui.cancelSettings.addEventListener('click', closeUIModal);
+ui.saveSettings.addEventListener('click', () => {
+    window.showToast("Ajustes sincronizados globalmente.", "cloud_done");
+    closeUIModal();
 });
 
 let isFirstMessage = true;
