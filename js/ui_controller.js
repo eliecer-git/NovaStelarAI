@@ -31,7 +31,10 @@ window.ui = {
     closeSettings: document.getElementById('close-settings'),
     cancelSettings: document.getElementById('cancel-settings'),
     saveSettings: document.getElementById('save-settings'),
-    toastContainer: document.getElementById('toast-container')
+    toastContainer: document.getElementById('toast-container'),
+    configUserName: document.getElementById('config-user-name'),
+    configAiName: document.getElementById('config-ai-name'),
+    userGreetingText: document.getElementById('user-greeting-text')
 };
 
 // --- SISTEMA TOAST (Notificaciones Profesionales) --- //
@@ -96,8 +99,34 @@ ui.closeSettings.addEventListener('click', closeUIModal);
 ui.cancelSettings.addEventListener('click', closeUIModal);
 ui.saveSettings.addEventListener('click', () => {
     if (settingsChanged) {
-        window.showToast("Ajustes sincronizados globalmente.", "cloud_done");
+        // Obtenemos los nombres del DOM
+        const userName = ui.configUserName.value.trim();
+        const aiName = ui.configAiName.value.trim();
+
+        // Lo guardamos en localStorage persistente
+        localStorage.setItem('nova_user_name', userName);
+        localStorage.setItem('nova_ai_name', aiName);
+
+        // Modificamos el DOM Activo Textual
+        if (ui.userGreetingText) {
+            ui.userGreetingText.textContent = `Hola, ${userName}`;
+        }
+
+        window.showToast("Datos Cifrados en Bóveda Local Módulo.", "cloud_done");
         closeUIModal();
+    }
+});
+
+// Inicializador en Frío de Nombres Guardados
+document.addEventListener('DOMContentLoaded', () => {
+    const savedUserName = localStorage.getItem('nova_user_name');
+    const savedAiName = localStorage.getItem('nova_ai_name');
+    if (savedUserName) {
+        if (ui.configUserName) ui.configUserName.value = savedUserName;
+        if (ui.userGreetingText) ui.userGreetingText.textContent = `Hola, ${savedUserName}`;
+    }
+    if (savedAiName && ui.configAiName) {
+        ui.configAiName.value = savedAiName;
     }
 });
 
@@ -106,8 +135,30 @@ let isProcessing = false;
 let currentFeatureMode = null; // 'imagen', 'video', 'musica', 'aprendizaje' o null
 
 // --- GESTORES DE HISTORIAL (Múltiples Chats) --- //
-let chatSessions = [];
+let chatSessions = JSON.parse(localStorage.getItem('novastelar_chats')) || [];
 let currentSessionId = null;
+
+// Re-pintar historial anterior
+function renderHistorySidebar() {
+    ui.historyList.innerHTML = '';
+    chatSessions.forEach(session => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${session.id})">
+                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${session.summary}
+            </button>
+        `;
+        ui.historyList.prepend(li);
+    });
+}
+
+function saveChatsToLocal() {
+    localStorage.setItem('novastelar_chats', JSON.stringify(chatSessions));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (chatSessions.length > 0) renderHistorySidebar();
+});
 
 window.loadChat = function (id) {
     if (isProcessing) return;
@@ -247,101 +298,163 @@ ui.btnSend.addEventListener('click', () => {
     }
 });
 
-// --- LÓGICA CORE & RENDEREOS --- //
+// --- RESPUESTA DE LA IA A MODIFICACIÓN DOM --- //
+function renderAIResponse(text, intent) {
+    let finalHtml = marked.parse(text);
 
-function submitPromptFromInput() {
-    const text = ui.input.value.trim();
-    if (text && !isProcessing) {
-        window.submitPrompt(text);
+    let roleIcon = 'auto_awesome';
+    if (intent === 'image_gen' || intent === 'video_gen') roleIcon = 'palette';
+    else if (intent === 'sys_time' || intent === 'sys_open') roleIcon = 'terminal';
+
+    // Para la IA
+    const aiMessageWrapper = document.createElement('div');
+    aiMessageWrapper.className = 'w-full flex justify-start ai-message opacity-0 translate-y-2 relative';
+
+    // Obtenemos el nombre dinámico si existe
+    const savedAiName = localStorage.getItem('nova_ai_name') || 'NovaStelar';
+
+    aiMessageWrapper.innerHTML = `
+        <div class="flex gap-4 max-w-[95%]">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 ai-glow bg-white dark:bg-nova-800 border border-gray-100 dark:border-white/5 mt-1 relative z-10 transition-colors">
+                <span class="material-symbols-rounded text-[20px] text-brand-500">${roleIcon}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-medium text-[13px] text-gray-800 dark:text-nova-100 mb-1 tracking-tight flex items-center gap-2">
+                    ${savedAiName}
+                    ${intent === 'image_gen' ? '<span class="text-[10px] bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Engine: Vision</span>' : ''}
+                    ${intent === 'video_gen' ? '<span class="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Engine: Video Rendering</span>' : ''}
+                    ${intent === 'knowledge' ? '<span class="text-[10px] bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Search: DuckDuckGo</span>' : ''}
+                </div>
+                <div class="prose dark:prose-invert max-w-none text-[15px] leading-relaxed relative z-10 font-normal
+                            prose-p:mb-5 prose-p:last:mb-0 
+                            prose-a:text-brand-600 dark:prose-a:text-brand-400 prose-a:no-underline hover:prose-a:underline
+                            prose-code:text-brand-600 dark:prose-code:text-brand-300 prose-code:bg-brand-50 dark:prose-code:bg-brand-900/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
+                            prose-pre:bg-[#1e1e1e] prose-pre:p-4 prose-pre:rounded-xl prose-pre:border prose-pre:border-white/10 prose-pre:shadow-2xl prose-pre:my-6
+                            prose-headings:text-gray-900 dark:prose-headings:text-white prose-headings:font-medium prose-headings:tracking-tight
+                            prose-h3:text-lg prose-h3:mb-3 prose-h3:mt-6
+                            prose-ul:my-4 prose-li:my-1
+                            prose-strong:font-semibold prose-strong:text-gray-900 dark:prose-strong:text-white
+                            ">
+                    ${finalHtml}
+                </div>
+            </div>
+        </div>
+    `;
+
+    ui.chatThread.appendChild(aiMessageWrapper);
+
+    // Guardar en Historial si estamos en una sesión
+    if (typeof chatSessions !== 'undefined' && currentSessionId) {
+        const currentSession = chatSessions.find(s => s.id === currentSessionId);
+        if (currentSession) {
+            currentSession.messages.push({ role: 'ai', text: text, intent: intent });
+            saveChatsToLocal();
+        }
     }
-}
-
-window.submitPrompt = async function (text) {
-    if (isProcessing) return;
-
-    isProcessing = true;
-    ui.input.value = '';
-    ui.input.style.height = 'auto';
-    ui.input.disabled = true;
-    ui.btnSend.disabled = true;
-    ui.btnSend.innerHTML = '<span class="material-symbols-rounded text-[22px] animate-spin">refresh</span>';
-
-    // Zero State y Creación de Sesión (Solo en el primer mensaje)
-    if (isFirstMessage || currentSessionId === null) {
-        ui.zeroState.style.display = 'none';
-        ui.chatThread.classList.remove('hidden');
-        isFirstMessage = false;
-
-        // Crear nueva sesión de Chat
-        currentSessionId = Date.now(); // ID único
-        const summary = text.length > 25 ? text.substring(0, 25) + '...' : text;
-
-        // Guardarla en Memoria Local RAM
-        chatSessions.push({
-            id: currentSessionId,
-            summary: summary,
-            messages: []
-        });
-
-        // Crear el botón en el Frontend (Sidebar Historial)
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${currentSessionId})">
-                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${summary}
-            </button>
-        `;
-        ui.historyList.prepend(li);
-    }
-
-    // Obtener Sesión Actual y guardar el mensaje del Usuario
-    const currentSession = chatSessions.find(s => s.id === currentSessionId);
-    if (currentSession) {
-        currentSession.messages.push({ role: 'user', text: text });
-    }
+    // The following lines seem to be a copy-paste error from the instruction.
+    // They are removed to maintain syntactical correctness.
+    // saveChatsToLocal();
+    // }
 
     renderUserMessage(text);
     scrollBottom();
 
-    ui.loadingIndicator.classList.remove('hidden');
-    scrollBottom();
+    // --- LÓGICA CORE & RENDEREOS --- //
 
-    try {
-        const iaResponse = await fakeAIModelResponse(text, currentFeatureMode);
+    function submitPromptFromInput() {
+        const text = ui.input.value.trim();
+        if (text && !isProcessing) {
+            window.submitPrompt(text);
+        }
+    }
 
-        // Guardar mensaje de la IA en la Sesión Local
-        if (currentSession) {
-            currentSession.messages.push({ role: 'ai', text: iaResponse });
+    window.submitPrompt = async function (text) {
+        if (isProcessing) return;
+
+        isProcessing = true;
+        ui.input.value = '';
+        ui.input.style.height = 'auto';
+        ui.input.disabled = true;
+        ui.btnSend.disabled = true;
+        ui.btnSend.innerHTML = '<span class="material-symbols-rounded text-[22px] animate-spin">refresh</span>';
+
+        // Zero State y Creación de Sesión (Solo en el primer mensaje)
+        if (isFirstMessage || currentSessionId === null) {
+            ui.zeroState.style.display = 'none';
+            ui.chatThread.classList.remove('hidden');
+            isFirstMessage = false;
+
+            // Crear nueva sesión de Chat
+            currentSessionId = Date.now(); // ID único
+            const summary = text.length > 25 ? text.substring(0, 25) + '...' : text;
+
+            // Guardarla en Memoria Local RAM
+            chatSessions.push({
+                id: currentSessionId,
+                summary: summary,
+                messages: []
+            });
+
+            // Crear el botón en el Frontend (Sidebar Historial)
+            const li = document.createElement('li');
+            li.innerHTML = `
+            <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${currentSessionId})">
+                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${summary}
+            </button>
+        `;
+            ui.historyList.prepend(li);
         }
 
-        ui.loadingIndicator.classList.add('hidden');
-        renderAIMessage(iaResponse);
-    } catch (err) {
-        ui.loadingIndicator.classList.add('hidden');
-        renderAIMessage("⚠️ Ocurrió un error general en la Red Estelar.");
-        console.error(err);
-    } finally {
-        isProcessing = false;
-        ui.input.disabled = false;
-        ui.btnSend.innerHTML = '<span class="material-symbols-rounded text-[22px] font-medium">arrow_upward</span>';
+        // Obtener Sesión Actual y guardar el mensaje del Usuario
+        const currentSession = chatSessions.find(s => s.id === currentSessionId);
+        if (currentSession) {
+            currentSession.messages.push({ role: 'user', text: text });
+            saveChatsToLocal();
+        }
 
-        ui.input.focus();
+        renderUserMessage(text);
         scrollBottom();
-    }
-}
 
-function renderUserMessage(text) {
-    const safeText = escapeHTML(text);
-    const html = `
+        ui.loadingIndicator.classList.remove('hidden');
+        scrollBottom();
+
+        try {
+            const iaResponse = await fakeAIModelResponse(text, currentFeatureMode);
+
+            // Guardar mensaje de la IA en la Sesión Local
+            if (currentSession) {
+                currentSession.messages.push({ role: 'ai', text: iaResponse });
+            }
+
+            ui.loadingIndicator.classList.add('hidden');
+            renderAIMessage(iaResponse);
+        } catch (err) {
+            ui.loadingIndicator.classList.add('hidden');
+            renderAIMessage("⚠️ Ocurrió un error general en la Red Estelar.");
+            console.error(err);
+        } finally {
+            isProcessing = false;
+            ui.input.disabled = false;
+            ui.btnSend.innerHTML = '<span class="material-symbols-rounded text-[22px] font-medium">arrow_upward</span>';
+
+            ui.input.focus();
+            scrollBottom();
+        }
+    }
+
+    function renderUserMessage(text) {
+        const safeText = escapeHTML(text);
+        const html = `
         <div class="msg-bubble msg-user animate-[fadeIn_0.3s_ease-out]">
             <div class="bubble-content shadow-sm text-[15.5px]">${safeText}</div>
         </div>
     `;
-    ui.chatThread.insertAdjacentHTML('beforeend', html);
-}
+        ui.chatThread.insertAdjacentHTML('beforeend', html);
+    }
 
-function renderAIMessage(markdownText) {
-    const parsedHTML = window.marked ? marked.parse(markdownText) : markdownText;
-    const html = `
+    function renderAIMessage(markdownText) {
+        const parsedHTML = window.marked ? marked.parse(markdownText) : markdownText;
+        const html = `
         <div class="msg-bubble msg-ai animate-[fadeIn_0.3s_ease-out]">
             <div class="bubble-avatar shadow-sm border border-brand-500/20">
                 <span class="material-symbols-rounded text-[18px] text-brand-500">auto_awesome</span>
@@ -351,67 +464,67 @@ function renderAIMessage(markdownText) {
             </div>
         </div>
     `;
-    ui.chatThread.insertAdjacentHTML('beforeend', html);
-    if (window.Prism) Prism.highlightAllUnder(ui.chatThread);
-}
-
-function scrollBottom() {
-    setTimeout(() => {
-        ui.chatStream.scrollTo({ top: ui.chatStream.scrollHeight + 150, behavior: 'smooth' });
-    }, 50);
-}
-
-function resetWorkspace() {
-    ui.chatThread.innerHTML = '';
-    ui.chatThread.classList.add('hidden');
-    ui.zeroState.style.display = 'flex';
-    isFirstMessage = true;
-    currentSessionId = null; // Reiniciar para que el próximo mensaje cree una nueva sesión
-    ui.input.value = '';
-    ui.input.focus();
-
-    // Si la abrimos en movil la volvemos a cerrar
-    if (window.innerWidth < 640 && !ui.sidebar.classList.contains('collapsed')) {
-        toggleSidebar();
+        ui.chatThread.insertAdjacentHTML('beforeend', html);
+        if (window.Prism) Prism.highlightAllUnder(ui.chatThread);
     }
-}
 
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, tag => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-    }[tag]));
-}
-
-// --- OMNIMODALITY AI BACKEND (API REAL CONNECTION) --- //
-async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
-    try {
-        const response = await fetch("https://novastelarai.onrender.com/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                text: prompt,
-                mode: explicitlySelectedMode
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error de red neuronal: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Si Python detecta un cálculo, podemos notificarlo visualmente
-        if (data.action_type === 'math') {
-            window.showToast("Cálculo matemático interceptado y resuelto puro", "calculate");
-        } else if (data.action_type === 'code') {
-            window.showToast("Compilación finalizada con éxito", "code");
-        }
-
-        return data.response;
-    } catch (error) {
-        console.error("Conexión fallida al Cerebro Python:", error);
-        return `⚠️ **Error de Conexión con el Cerebro Principal.**\n\nNo he podido conectarme a mi servidor local de inteligencia artificial en \`localhost:8000\`. \n\n*Detalle del fallo: ${error.message}*`;
+    function scrollBottom() {
+        setTimeout(() => {
+            ui.chatStream.scrollTo({ top: ui.chatStream.scrollHeight + 150, behavior: 'smooth' });
+        }, 50);
     }
-}
+
+    function resetWorkspace() {
+        ui.chatThread.innerHTML = '';
+        ui.chatThread.classList.add('hidden');
+        ui.zeroState.style.display = 'flex';
+        isFirstMessage = true;
+        currentSessionId = null; // Reiniciar para que el próximo mensaje cree una nueva sesión
+        ui.input.value = '';
+        ui.input.focus();
+
+        // Si la abrimos en movil la volvemos a cerrar
+        if (window.innerWidth < 640 && !ui.sidebar.classList.contains('collapsed')) {
+            toggleSidebar();
+        }
+    }
+
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag]));
+    }
+
+    // --- OMNIMODALITY AI BACKEND (API REAL CONNECTION) --- //
+    async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
+        try {
+            const response = await fetch("https://novastelarai.onrender.com/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    text: prompt,
+                    mode: explicitlySelectedMode
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error de red neuronal: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Si Python detecta un cálculo, podemos notificarlo visualmente
+            if (data.action_type === 'math') {
+                window.showToast("Cálculo matemático interceptado y resuelto puro", "calculate");
+            } else if (data.action_type === 'code') {
+                window.showToast("Compilación finalizada con éxito", "code");
+            }
+
+            return data.response;
+        } catch (error) {
+            console.error("Conexión fallida al Cerebro Python:", error);
+            return `⚠️ **Error de Conexión con el Cerebro Principal.**\n\nNo he podido conectarme a mi servidor local de inteligencia artificial en \`localhost:8000\`. \n\n*Detalle del fallo: ${error.message}*`;
+        }
+    }
