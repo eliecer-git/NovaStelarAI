@@ -1,1 +1,1 @@
-requirements.txt
+# No hay dependencias externas. NovaStelar usa la librería estándar de Python por seguridad extrema.
