@@ -94,7 +94,7 @@ def analyze_intent(text: str) -> str:
             return "math"
             
     # 4. Búsqueda de conocimiento (Multilingual Web Search)
-    if re.search(r'\b(que es|quien es|como funciona|explicame|significa|que significa|quien fue|donde esta|what is|who is|where is|how does|explain|o que e|qui est)\b', clean_text):
+    if re.search(r'\b(que es|quien es|como funciona|explicame|expliques|significa|que significa|quien fue|donde esta|what is|who is|where is|how does|explain|o que e|qui est)\b', clean_text):
         return "knowledge"
         
     # 5. Código y Programación
@@ -242,7 +242,7 @@ def generate_knowledge(text: str, mode: str = None) -> str:
     import re
     
     query = text.strip()
-    match_conocimiento = re.search(r'(que es|como funciona|significa|sobre|explicame|explicacion de|what is|who is|explain|what are)\s+(el|la|los|las|un|una|the|a|an)?[ \t]*(.*)', query, re.IGNORECASE)
+    match_conocimiento = re.search(r'(que es|como funciona|significa|sobre|explicame|expliques|explicacion de|what is|who is|explain|what are)\s+(el|la|los|las|un|una|the|a|an)?[ \t]*(.*)', query, re.IGNORECASE)
     
     if match_conocimiento and match_conocimiento.group(3).strip():
         query = match_conocimiento.group(3).strip()
