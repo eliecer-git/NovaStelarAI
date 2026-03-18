@@ -410,7 +410,13 @@ class BrainHandler(BaseHTTPRequestHandler):
             response_text = generate_music_response(prompt)
             intent = "music_gen"
         else:
-            response_text = "No estoy completamente segura de lo que quieres decir. ¿Podrías explicármelo de otra manera o con más detalle?"
+            import random
+            respuestas_profesor = [
+                "Hmm, me parece muy interesante tu planteamiento, pero para darte una cátedra precisa necesito que seas un poco más específico. ¿De qué tema exacto deseas que hablemos?",
+                "Interesante... Mi lógica deductiva humana me dice que quieres saber algo profundo, pero ¿podrías replantear la pregunta con un poco más de detalle para tu profesor virtual?",
+                "¡Esa es una excelente intervención humana! Aunque, para ser exactos en mi respuesta, te pediría que me detalles un poco más el contexto de tu duda."
+            ]
+            response_text = random.choice(respuestas_profesor)
 
         response_json = {
             "response": response_text,
