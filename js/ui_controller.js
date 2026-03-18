@@ -341,7 +341,7 @@ function escapeHTML(str) {
 // --- OMNIMODALITY AI BACKEND (API REAL CONNECTION) --- //
 async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
     try {
-        const response = await fetch("http://localhost:8000/", {
+        const response = await fetch("https://novastelarai.onrender.com/", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
