@@ -1,1 +1,1 @@
-# No hay dependencias externas. NovaStelar usa la librería estándar de Python por seguridad extrema.
+duckduckgo-search>=6.0.0
