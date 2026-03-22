@@ -402,8 +402,8 @@ class BrainHandler(BaseHTTPRequestHandler):
                 
                 full_query = f"{system_prefix}\n\nMensaje humano: {prompt}\nNovaStelar:"
                 
-                # Ejecutar solicitud al modelo LLM
-                response_text = DDGS().chat(full_query)
+                # Ejecutar solicitud al modelo LLM con MÁQUINAS EN LA NUBE
+                response_text = DDGS(timeout=10).chat(full_query, model='gpt-4o-mini')
                 intent = "llm_generative"
                 
         except ImportError:

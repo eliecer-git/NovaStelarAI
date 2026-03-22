@@ -441,9 +441,13 @@ function escapeHTML(str) {
 
 // --- OMNIMODALITY AI BACKEND (API REAL CONNECTION) --- //
 async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 Segundos máximo de espera para el Cerebro Python
+
     try {
         const response = await fetch("https://novastelarai.onrender.com/", {
             method: "POST",
+            signal: controller.signal,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -452,6 +456,8 @@ async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
                 mode: explicitlySelectedMode
             })
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`Error de red neuronal: ${response.status}`);
@@ -468,7 +474,11 @@ async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
 
         return data.response;
     } catch (error) {
+        clearTimeout(timeoutId);
         console.error("Conexión fallida al Cerebro Python:", error);
-        return `⚠️ **Error de Conexión con el Cerebro Principal.**\n\nNo he podido conectarme a mi servidor local de inteligencia artificial en \`localhost:8000\`. \n\n*Detalle del fallo: ${error.message}*`;
+        if (error.name === 'AbortError') {
+            return `⚠️ **Corte de Enlace Táctico.**\n\nEl servidor en red está tardando demasiado en responder (Timeout). Los escudos antibloqueo desconectaron el hilo para proteger la página.`;
+        }
+        return `⚠️ **Error de Conexión con el Cerebro Principal.**\n\nNo he podido conectarme a mi servidor de inteligencia artificial. \n\n*Detalle del fallo: ${error.message}*`;
     }
 }
