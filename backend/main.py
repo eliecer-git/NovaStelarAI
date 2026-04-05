@@ -322,8 +322,13 @@ def generate_code(text: str) -> str:
 def generate_image_response(text: str) -> str:
     import urllib.parse
     query = re.sub(r'\b(crea|una|imagen|dibuja|generame|foto|de)\b', '', text.lower(), flags=re.IGNORECASE).strip()
-    url_foto = f"https://source.unsplash.com/featured/800x600?{urllib.parse.quote(query or 'nature')}"
-    return f"🖼️ **Imagen Generada**\n\nHe renderizado este visual sobre: *'{query or 'conceptual'}'*\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl'><img src='{url_foto}' class='w-full' onerror=\"this.src='https://picsum.photos/800/600'\"></div>"
+    if not query:
+        query = "epic sci fi futuristic advanced artificial intelligence core glowing"
+    
+    query_encoded = urllib.parse.quote(query)
+    url_foto = f"https://image.pollinations.ai/prompt/{query_encoded}?width=800&height=600&nologo=true"
+    
+    return f"🖼️ **Motor de Visión Artificial Activado**\n\nHe renderizado este arte digital basándome en tus parámetros neuronales: *'{query}'*\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl relative group'>\n  <img src='{url_foto}' class='w-full object-cover transition-transform duration-500 group-hover:scale-105' alt='AI Generated Image'>\n  <div class='absolute inset-0 bg-gradient-to-t from-nova-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4'>\n    <span class='text-white text-[11px] font-mono tracking-widest bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/10'>ENGINE: STABLE DIFFUSION XL</span>\n  </div>\n</div>"
 
 def generate_video_response(text: str) -> str:
     import urllib.parse
