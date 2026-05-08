@@ -4,8 +4,8 @@ echo "🌌 INICIANDO MÁQUINA VIRTUAL NOVASTELAR CORE 🌌"
 echo "==================================================="
 
 echo "[1/3] Lenguaje BASH (Sistema Inmunológico): Limpiando puertos..."
-pkill -f "python3 backend/main.py" 2>/dev/null
-pkill -f "python3 -m http.server 8082" 2>/dev/null
+pkill -f "backend/main.py" 2>/dev/null
+pkill -f "http.server 8082" 2>/dev/null
 sleep 1
 
 echo "[2/3] Lenguaje PYTHON (Cerebro Lógico y Memoria): Despertando..."
