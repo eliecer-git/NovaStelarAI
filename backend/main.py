@@ -432,21 +432,32 @@ class BrainHandler(BaseHTTPRequestHandler):
                             "https://openrouter.ai/api/v1/chat/completions",
                             headers={
                                 "Authorization": f"Bearer {openrouter_key}",
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                "HTTP-Referer": "http://localhost:8082",
+                                "X-Title": "NovaStelar AI"
                             },
                             data=json.dumps({
-                                "model": "meta-llama/llama-3-8b-instruct:free",
+                                "model": "meta-llama/llama-3.3-70b-instruct:free",
                                 "messages": [
                                     {"role": "system", "content": system_instruction},
                                     {"role": "user", "content": prompt}
                                 ]
                             }).encode("utf-8")
                         )
-                        with urllib.request.urlopen(req) as resp:
-                            data = json.loads(resp.read().decode())
-                            response_text = data['choices'][0]['message']['content']
-                            # Añadir un mini aviso visual para el usuario de que entró el failover
-                            response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo: OpenRouter)*"
+                        try:
+                            with urllib.request.urlopen(req) as resp:
+                                data = json.loads(resp.read().decode())
+                                response_text = data['choices'][0]['message']['content']
+                                # Añadir un mini aviso visual para el usuario de que entró el failover
+                                response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo: OpenRouter)*"
+                        except Exception as e_or:
+                            import urllib.error
+                            if isinstance(e_or, urllib.error.HTTPError):
+                                err_msg = e_or.read().decode()
+                            else:
+                                err_msg = str(e_or)
+                            response_text = f"⚠️ **Error en ambos núcleos:** Gemini falló ({str(e_gemini)}). OpenRouter falló ({err_msg})."
+                            intent = "llm_error"
                     else:
                         response_text = f"⚠️ **Corte en el Núcleo Principal:** {str(e_gemini)}\n\n*El sistema intentó usar el Cerebro de Respaldo (OpenRouter), pero la variable OPENROUTER_API_KEY no está configurada.*"
                         intent = "llm_error"
