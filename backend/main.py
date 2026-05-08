@@ -397,30 +397,33 @@ class BrainHandler(BaseHTTPRequestHandler):
             else:
                 # ====== NÚCLEO NEURONAL CENTRALIZADO (GOOGLE AI STUDIO) ======
                 import os
-                import google.generativeai as genai
+                from google import genai
+                from google.genai import types
                 
                 api_key = os.environ.get("GOOGLE_API_KEY")
                 if not api_key:
                     response_text = "⚠️ **Error de API:** La variable de entorno `GOOGLE_API_KEY` no está configurada. Por favor, añádela para activar mi núcleo Gemini."
                     intent = "llm_error"
                 else:
-                    genai.configure(api_key=api_key)
+                    client = genai.Client(api_key=api_key)
                     
                     system_instruction = "Eres NovaStelar, una inteligencia artificial conversacional altamente avanzada, profesional, brillante, servicial y empática. Responde SIEMPRE en español de forma natural y muy humana."
                     if mode == 'aprendizaje':
                         system_instruction += " Adopta el rol de un Profesor Académico detallista. Usa listas, negritas y explicaciones muy profundas y pedagógicas."
                     
-                    model = genai.GenerativeModel(
-                        model_name="gemini-1.5-flash",
-                        system_instruction=system_instruction
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_instruction
+                        )
                     )
                     
-                    response = model.generate_content(prompt)
                     response_text = response.text
                     intent = "llm_generative"
                 
         except ImportError:
-            response_text = "⚠️ **Error de Compilación Neuronal:** Falta la librería `google-generativeai`. Instálala con pip."
+            response_text = "⚠️ **Error de Compilación Neuronal:** Falta la librería `google-genai`. Instálala con pip."
         except Exception as e:
             import random
             fallback = ["La red estelar está algo saturada en este momento. Dame unos segundos y vuelve a preguntar.", 
