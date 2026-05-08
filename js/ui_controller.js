@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let isFirstMessage = true;
 let isProcessing = false;
-let currentFeatureMode = null; // 'imagen', 'video', 'musica', 'aprendizaje' o null
+let currentFeatureMode = null; // 'imagen', 'aprendizaje' o null
 
 // --- GESTORES DE HISTORIAL (Múltiples Chats) --- //
 let chatSessions = JSON.parse(localStorage.getItem('novastelar_chats')) || [];
@@ -250,8 +250,7 @@ window.selectFeature = function (feature, iconStr) {
 
     switch (feature) {
         case 'imagen': label = 'Modo Imagen'; break;
-        case 'video': label = 'Modo Video'; break;
-        case 'musica': label = 'Modo Música'; break;
+
         case 'aprendizaje': label = 'Aprendizaje Escolar'; break;
     }
 

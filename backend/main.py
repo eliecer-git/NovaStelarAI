@@ -345,17 +345,7 @@ def generate_image_response(text: str) -> str:
     
     return f"🎨 **¡Aquí tienes tu imagen!**\n\nMe pediste: *'{query}'* y esto fue lo que imaginé para ti:\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl relative group'>\n  <img src='{url_foto}' class='w-full object-cover transition-transform duration-500 group-hover:scale-105' alt='AI Generated Image'>\n</div>"
 
-def generate_video_response(text: str) -> str:
-    import urllib.parse
-    query = re.sub(r'\b(crea|un|video|generame|pelicula|de)\b', '', text.lower(), flags=re.IGNORECASE).strip()
-    # Para efectos del prototipo avanzado, buscamos un video cinematográfico relacionado en YouTube
-    return f"🎬 **Video encontrado**\n\nComo generar video desde cero requiere mucho tiempo de procesamiento, busqué los mejores videos sobre *'{query or 'universo'}'* para ti:\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl aspect-video'><iframe class='w-full h-full' src='https://www.youtube.com/embed?listType=search&list={urllib.parse.quote(query or 'cinematic universe')}' frameborder='0' allowfullscreen></iframe></div>"
 
-def generate_music_response(text: str) -> str:
-    import urllib.parse
-    query = re.sub(r'\b(crea|una|musica|cancion|pista|de|lofi)\b', '', text.lower(), flags=re.IGNORECASE).strip()
-    # Generamos un reproductor de audio con música ambiental/relacionada
-    return f"🎵 **Música relajante**\n\nPara generar música dinámica necesitaríamos conectar una API como Suno o Udio. Por ahora, te comparto esta pista ambiental para que te relajes mientras charlamos sobre *'{query or 'música'}'*:\n\n<div class='mt-4 p-4 bg-nova-800 rounded-xl border border-green-500/20 flex flex-col gap-3'>\n  <div class='flex items-center gap-3'><span class='material-symbols-rounded text-green-500 ai-spin'>music_note</span><span class='text-sm font-medium'>Reproduciendo Pista...</span></div>\n  <audio controls class='w-full h-10 overflow-hidden rounded-lg'>\n    <source src='https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' type='audio/mpeg'>\n  </audio>\n</div>"
 
 class BrainHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -393,12 +383,7 @@ class BrainHandler(BaseHTTPRequestHandler):
             if mode == 'imagen' or intent == "image_gen":
                 response_text = generate_image_response(prompt)
                 intent = "image_gen"
-            elif mode == 'video':
-                response_text = generate_video_response(prompt)
-                intent = "video_gen"
-            elif mode == 'musica' or intent == "music_gen":
-                response_text = generate_music_response(prompt)
-                intent = "music_gen"
+
             elif intent == "sys_time":
                 response_text = get_system_time(prompt)
             elif intent == "sys_open":
