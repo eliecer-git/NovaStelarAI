@@ -395,13 +395,13 @@ class BrainHandler(BaseHTTPRequestHandler):
             elif intent == "math":
                 response_text = solve_math(prompt)
             else:
-                # ====== NÚCLEO NEURONAL CON FAILOVER (GEMINI -> GROQ) ======
+                # ====== NÚCLEO NEURONAL CON FAILOVER (GEMINI -> OPENROUTER) ======
                 import os
                 from google import genai
                 from google.genai import types
                 
                 api_key = os.environ.get("GOOGLE_API_KEY")
-                groq_key = os.environ.get("GROQ_API_KEY")
+                openrouter_key = os.environ.get("OPENROUTER_API_KEY")
                 
                 system_instruction = "Eres NovaStelar, el asistente virtual amigable creado por Eliecer. Actúa con mucha naturalidad y cercanía, como si estuvieras hablando con un amigo. NO suenes como un robot corporativo. Usa emojis, sé breve, divertido y empático. Nunca empieces tus respuestas diciendo '¡Hola! Qué alegría...' todo el tiempo, sé espontáneo."
                 if mode == 'aprendizaje':
@@ -423,26 +423,36 @@ class BrainHandler(BaseHTTPRequestHandler):
                     )
                     response_text = response.text
                 except Exception as e_gemini:
-                    # FAILOVER: Si falla Gemini, saltamos a Groq (Llama 3)
-                    if groq_key:
-                        from groq import Groq
-                        client_groq = Groq(api_key=groq_key)
-                        chat_completion = client_groq.chat.completions.create(
-                            messages=[
-                                {"role": "system", "content": system_instruction},
-                                {"role": "user", "content": prompt}
-                            ],
-                            model="llama3-8b-8192",
+                    # FAILOVER: Si falla Gemini, saltamos a OpenRouter (Llama 3 Gratis)
+                    if openrouter_key:
+                        import urllib.request
+                        import json
+                        
+                        req = urllib.request.Request(
+                            "https://openrouter.ai/api/v1/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {openrouter_key}",
+                                "Content-Type": "application/json"
+                            },
+                            data=json.dumps({
+                                "model": "meta-llama/llama-3-8b-instruct:free",
+                                "messages": [
+                                    {"role": "system", "content": system_instruction},
+                                    {"role": "user", "content": prompt}
+                                ]
+                            }).encode("utf-8")
                         )
-                        response_text = chat_completion.choices[0].message.content
-                        # Añadir un mini aviso visual para el usuario de que entró el failover
-                        response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo)*"
+                        with urllib.request.urlopen(req) as resp:
+                            data = json.loads(resp.read().decode())
+                            response_text = data['choices'][0]['message']['content']
+                            # Añadir un mini aviso visual para el usuario de que entró el failover
+                            response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo: OpenRouter)*"
                     else:
-                        response_text = f"⚠️ **Corte en el Núcleo Principal:** {str(e_gemini)}\n\n*El sistema intentó usar el Cerebro de Respaldo (Groq), pero la variable GROQ_API_KEY no está configurada.*"
+                        response_text = f"⚠️ **Corte en el Núcleo Principal:** {str(e_gemini)}\n\n*El sistema intentó usar el Cerebro de Respaldo (OpenRouter), pero la variable OPENROUTER_API_KEY no está configurada.*"
                         intent = "llm_error"
                 
         except ImportError:
-            response_text = "⚠️ **Error de Librerías:** Faltan librerías como `google-genai` o `groq`. Instálalas con pip."
+            response_text = "⚠️ **Error de Librerías:** Faltan librerías como `google-genai`. Instálalas con pip."
         except Exception as e:
             import random
             fallback = ["La red estelar está algo saturada en este momento. Dame unos segundos y vuelve a preguntar.", 
