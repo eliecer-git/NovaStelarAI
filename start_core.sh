@@ -9,7 +9,11 @@ pkill -f "python3 -m http.server 8082" 2>/dev/null
 sleep 1
 
 echo "[2/3] Lenguaje PYTHON (Cerebro Lógico y Memoria): Despertando..."
-python3 backend/main.py &
+if [ -d "venv" ]; then
+    venv/bin/python backend/main.py &
+else
+    python3 backend/main.py &
+fi
 sleep 2
 
 echo "[3/3] Lenguaje JAVASCRIPT/HTML/CSS (Sistema Nervioso): Renderizando Front-End..."
