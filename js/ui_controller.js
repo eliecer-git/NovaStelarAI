@@ -445,7 +445,7 @@ async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 Segundos máximo de espera para el Cerebro Python
 
     try {
-        const response = await fetch("https://novastelarai.onrender.com/", {
+        const response = await fetch("http://localhost:8000/", {
             method: "POST",
             signal: controller.signal,
             headers: {
