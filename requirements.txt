@@ -1,1 +1,1 @@
-duckduckgo-search>=6.0.0
+google-generativeai>=0.4.0
