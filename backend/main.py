@@ -328,19 +328,19 @@ def generate_image_response(text: str) -> str:
     query_encoded = urllib.parse.quote(query)
     url_foto = f"https://image.pollinations.ai/prompt/{query_encoded}?width=800&height=600&nologo=true"
     
-    return f"🖼️ **Motor de Visión Artificial Activado**\n\nHe renderizado este arte digital basándome en tus parámetros neuronales: *'{query}'*\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl relative group'>\n  <img src='{url_foto}' class='w-full object-cover transition-transform duration-500 group-hover:scale-105' alt='AI Generated Image'>\n  <div class='absolute inset-0 bg-gradient-to-t from-nova-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4'>\n    <span class='text-white text-[11px] font-mono tracking-widest bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/10'>ENGINE: STABLE DIFFUSION XL</span>\n  </div>\n</div>"
+    return f"🎨 **¡Aquí tienes tu imagen!**\n\nMe pediste: *'{query}'* y esto fue lo que imaginé para ti:\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl relative group'>\n  <img src='{url_foto}' class='w-full object-cover transition-transform duration-500 group-hover:scale-105' alt='AI Generated Image'>\n</div>"
 
 def generate_video_response(text: str) -> str:
     import urllib.parse
     query = re.sub(r'\b(crea|un|video|generame|pelicula|de)\b', '', text.lower(), flags=re.IGNORECASE).strip()
     # Para efectos del prototipo avanzado, buscamos un video cinematográfico relacionado en YouTube
-    return f"🎬 **Simulación de Video 4K**\n\nHe procesado los fotogramas dinámicos relacionados con: *'{query or 'universo'}'*\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl aspect-video'><iframe class='w-full h-full' src='https://www.youtube.com/embed?listType=search&list={urllib.parse.quote(query or 'cinematic universe')}' frameborder='0' allowfullscreen></iframe></div>"
+    return f"🎬 **Video encontrado**\n\nComo generar video desde cero requiere mucho tiempo de procesamiento, busqué los mejores videos sobre *'{query or 'universo'}'* para ti:\n\n<div class='mt-4 overflow-hidden rounded-xl border border-brand-500/20 shadow-2xl aspect-video'><iframe class='w-full h-full' src='https://www.youtube.com/embed?listType=search&list={urllib.parse.quote(query or 'cinematic universe')}' frameborder='0' allowfullscreen></iframe></div>"
 
 def generate_music_response(text: str) -> str:
     import urllib.parse
     query = re.sub(r'\b(crea|una|musica|cancion|pista|de|lofi)\b', '', text.lower(), flags=re.IGNORECASE).strip()
     # Generamos un reproductor de audio con música ambiental/relacionada
-    return f"🎵 **Sintetizador de Audio Activo**\n\nComponiendo ondas sonoras para: *'{query or 'lofi relax'}'*\n\n<div class='mt-4 p-4 bg-nova-800 rounded-xl border border-green-500/20 flex flex-col gap-3'>\n  <div class='flex items-center gap-3'><span class='material-symbols-rounded text-green-500 ai-spin'>music_note</span><span class='text-sm font-medium'>Reproduciendo Pista Generada...</span></div>\n  <audio controls class='w-full h-10 overflow-hidden rounded-lg'>\n    <source src='https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' type='audio/mpeg'>\n  </audio>\n</div>"
+    return f"🎵 **Música relajante**\n\nPara generar música dinámica necesitaríamos conectar una API como Suno o Udio. Por ahora, te comparto esta pista ambiental para que te relajes mientras charlamos sobre *'{query or 'música'}'*:\n\n<div class='mt-4 p-4 bg-nova-800 rounded-xl border border-green-500/20 flex flex-col gap-3'>\n  <div class='flex items-center gap-3'><span class='material-symbols-rounded text-green-500 ai-spin'>music_note</span><span class='text-sm font-medium'>Reproduciendo Pista...</span></div>\n  <audio controls class='w-full h-10 overflow-hidden rounded-lg'>\n    <source src='https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' type='audio/mpeg'>\n  </audio>\n</div>"
 
 class BrainHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -407,9 +407,9 @@ class BrainHandler(BaseHTTPRequestHandler):
                 else:
                     client = genai.Client(api_key=api_key)
                     
-                    system_instruction = "Eres NovaStelar, una inteligencia artificial conversacional altamente avanzada, profesional, brillante, servicial y empática. Responde SIEMPRE en español de forma natural y muy humana."
+                    system_instruction = "Eres NovaStelar, el asistente virtual amigable creado por Eliecer. Actúa con mucha naturalidad y cercanía, como si estuvieras hablando con un amigo. NO suenes como un robot corporativo. Usa emojis, sé breve, divertido y empático. Nunca empieces tus respuestas diciendo '¡Hola! Qué alegría...' todo el tiempo, sé espontáneo. Si el usuario te habla normal, respóndele normal, sin tantas formalidades."
                     if mode == 'aprendizaje':
-                        system_instruction += " Adopta el rol de un Profesor Académico detallista. Usa listas, negritas y explicaciones muy profundas y pedagógicas."
+                        system_instruction += " Para esta respuesta, actúa como un tutor amable que explica cosas difíciles de forma súper sencilla y con ejemplos de la vida real."
                     
                     response = client.models.generate_content(
                         model="gemini-2.5-flash",
