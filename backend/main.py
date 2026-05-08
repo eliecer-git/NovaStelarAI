@@ -174,6 +174,14 @@ def handle_memory_save(text: str) -> str:
         save_memory("color_favorito", color)
         return f"Perfecto, guardado. Tu color favorito es el **{color}**."
         
+    # Guardar cualquier otra cosa: "mi [dato] es [valor]"
+    match_generico = re.search(r'\bmi\s+([a-záéíóúñ\s]+)\s+es\s+(.+)', texto)
+    if match_generico:
+        llave = match_generico.group(1).strip()
+        valor = match_generico.group(2).strip().title()
+        save_memory(f"user_{llave.replace(' ', '_')}", valor)
+        return f"¡Anotado! Guardé en mi base de datos que tu {llave} es **{valor}**."
+        
     return "Lo siento, ¿podrías repetirme esa información de forma más clara para guardarla?"
 
 def handle_memory_recall(text: str) -> str:
@@ -190,6 +198,13 @@ def handle_memory_recall(text: str) -> str:
             return f"Tu color favorito es el **{color}**."
         else:
             return "Todavía no sé cuál es tu color preferido."
+            
+    match_pregunta = re.search(r'\b(cual es mi|que es mi)\s+([a-záéíóúñ\s]+)', texto)
+    if match_pregunta:
+        llave = match_pregunta.group(2).strip()
+        valor = load_memory(f"user_{llave.replace(' ', '_')}")
+        if valor:
+            return f"Tengo registrado que tu {llave} es **{valor}**."
             
     return "¿Qué es lo que quieres que recuerde exactamente?"
 
@@ -412,7 +427,7 @@ class BrainHandler(BaseHTTPRequestHandler):
                         system_instruction += " Para esta respuesta, actúa como un tutor amable que explica cosas difíciles de forma súper sencilla y con ejemplos de la vida real."
                     
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini-2.0-flash",
                         contents=prompt,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction
