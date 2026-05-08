@@ -395,22 +395,25 @@ class BrainHandler(BaseHTTPRequestHandler):
             elif intent == "math":
                 response_text = solve_math(prompt)
             else:
-                # ====== NÚCLEO NEURONAL CENTRALIZADO (GOOGLE AI STUDIO) ======
+                # ====== NÚCLEO NEURONAL CON FAILOVER (GEMINI -> GROQ) ======
                 import os
                 from google import genai
                 from google.genai import types
                 
                 api_key = os.environ.get("GOOGLE_API_KEY")
-                if not api_key:
-                    response_text = "⚠️ **Error de API:** La variable de entorno `GOOGLE_API_KEY` no está configurada. Por favor, añádela para activar mi núcleo Gemini."
-                    intent = "llm_error"
-                else:
+                groq_key = os.environ.get("GROQ_API_KEY")
+                
+                system_instruction = "Eres NovaStelar, el asistente virtual amigable creado por Eliecer. Actúa con mucha naturalidad y cercanía, como si estuvieras hablando con un amigo. NO suenes como un robot corporativo. Usa emojis, sé breve, divertido y empático. Nunca empieces tus respuestas diciendo '¡Hola! Qué alegría...' todo el tiempo, sé espontáneo."
+                if mode == 'aprendizaje':
+                    system_instruction += " Para esta respuesta, actúa como un tutor amable que explica cosas difíciles de forma súper sencilla y con ejemplos de la vida real."
+                
+                intent = "llm_generative"
+                
+                try:
+                    if not api_key:
+                        raise Exception("GOOGLE_API_KEY no encontrada")
+                        
                     client = genai.Client(api_key=api_key)
-                    
-                    system_instruction = "Eres NovaStelar, el asistente virtual amigable creado por Eliecer. Actúa con mucha naturalidad y cercanía, como si estuvieras hablando con un amigo. NO suenes como un robot corporativo. Usa emojis, sé breve, divertido y empático. Nunca empieces tus respuestas diciendo '¡Hola! Qué alegría...' todo el tiempo, sé espontáneo. Si el usuario te habla normal, respóndele normal, sin tantas formalidades."
-                    if mode == 'aprendizaje':
-                        system_instruction += " Para esta respuesta, actúa como un tutor amable que explica cosas difíciles de forma súper sencilla y con ejemplos de la vida real."
-                    
                     response = client.models.generate_content(
                         model="gemini-2.0-flash",
                         contents=prompt,
@@ -418,12 +421,28 @@ class BrainHandler(BaseHTTPRequestHandler):
                             system_instruction=system_instruction
                         )
                     )
-                    
                     response_text = response.text
-                    intent = "llm_generative"
+                except Exception as e_gemini:
+                    # FAILOVER: Si falla Gemini, saltamos a Groq (Llama 3)
+                    if groq_key:
+                        from groq import Groq
+                        client_groq = Groq(api_key=groq_key)
+                        chat_completion = client_groq.chat.completions.create(
+                            messages=[
+                                {"role": "system", "content": system_instruction},
+                                {"role": "user", "content": prompt}
+                            ],
+                            model="llama3-8b-8192",
+                        )
+                        response_text = chat_completion.choices[0].message.content
+                        # Añadir un mini aviso visual para el usuario de que entró el failover
+                        response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo)*"
+                    else:
+                        response_text = f"⚠️ **Corte en el Núcleo Principal:** {str(e_gemini)}\n\n*El sistema intentó usar el Cerebro de Respaldo (Groq), pero la variable GROQ_API_KEY no está configurada.*"
+                        intent = "llm_error"
                 
         except ImportError:
-            response_text = "⚠️ **Error de Compilación Neuronal:** Falta la librería `google-genai`. Instálala con pip."
+            response_text = "⚠️ **Error de Librerías:** Faltan librerías como `google-genai` o `groq`. Instálalas con pip."
         except Exception as e:
             import random
             fallback = ["La red estelar está algo saturada en este momento. Dame unos segundos y vuelve a preguntar.", 
