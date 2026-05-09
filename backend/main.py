@@ -395,13 +395,13 @@ class BrainHandler(BaseHTTPRequestHandler):
             elif intent == "math":
                 response_text = solve_math(prompt)
             else:
-                # ====== NÚCLEO NEURONAL CON FAILOVER (GEMINI -> OPENROUTER) ======
+                # ====== NÚCLEO NEURONAL CON FAILOVER (GEMINI -> HUGGING FACE) ======
                 import os
                 from google import genai
                 from google.genai import types
                 
                 api_key = os.environ.get("GOOGLE_API_KEY")
-                openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+                hf_key = os.environ.get("HUGGINGFACE_API_KEY")
                 
                 system_instruction = "Eres NovaStelar, el asistente virtual amigable creado por Eliecer. Actúa con mucha naturalidad y cercanía, como si estuvieras hablando con un amigo. NO suenes como un robot corporativo. Usa emojis, sé breve, divertido y empático. Nunca empieces tus respuestas diciendo '¡Hola! Qué alegría...' todo el tiempo, sé espontáneo."
                 if mode == 'aprendizaje':
@@ -423,24 +423,23 @@ class BrainHandler(BaseHTTPRequestHandler):
                     )
                     response_text = response.text
                 except Exception as e_gemini:
-                    # FAILOVER: Si falla Gemini, saltamos a OpenRouter (Llama 3 Gratis)
-                    if openrouter_key:
+                    # FAILOVER: Si falla Gemini, saltamos a Hugging Face (Mistral)
+                    if hf_key:
                         import urllib.request
                         
                         req = urllib.request.Request(
-                            "https://openrouter.ai/api/v1/chat/completions",
+                            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3/v1/chat/completions",
                             headers={
-                                "Authorization": f"Bearer {openrouter_key}",
-                                "Content-Type": "application/json",
-                                "HTTP-Referer": "http://localhost:8082",
-                                "X-Title": "NovaStelar AI"
+                                "Authorization": f"Bearer {hf_key}",
+                                "Content-Type": "application/json"
                             },
                             data=json.dumps({
-                                "model": "openrouter/free",
+                                "model": "mistralai/Mistral-7B-Instruct-v0.3",
                                 "messages": [
                                     {"role": "system", "content": system_instruction},
                                     {"role": "user", "content": prompt}
-                                ]
+                                ],
+                                "max_tokens": 800
                             }).encode("utf-8")
                         )
                         try:
@@ -448,17 +447,17 @@ class BrainHandler(BaseHTTPRequestHandler):
                                 data = json.loads(resp.read().decode())
                                 response_text = data['choices'][0]['message']['content']
                                 # Añadir un mini aviso visual para el usuario de que entró el failover
-                                response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo: OpenRouter)*"
-                        except Exception as e_or:
+                                response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo: Hugging Face)*"
+                        except Exception as e_hf:
                             import urllib.error
-                            if isinstance(e_or, urllib.error.HTTPError):
-                                err_msg = e_or.read().decode()
+                            if isinstance(e_hf, urllib.error.HTTPError):
+                                err_msg = e_hf.read().decode()
                             else:
-                                err_msg = str(e_or)
-                            response_text = f"⚠️ **Error en ambos núcleos:** Gemini falló ({str(e_gemini)}). OpenRouter falló ({err_msg})."
+                                err_msg = str(e_hf)
+                            response_text = f"⚠️ **Error en ambos núcleos:** Gemini falló ({str(e_gemini)}). Hugging Face falló ({err_msg})."
                             intent = "llm_error"
                     else:
-                        response_text = f"⚠️ **Corte en el Núcleo Principal:** {str(e_gemini)}\n\n*El sistema intentó usar el Cerebro de Respaldo (OpenRouter), pero la variable OPENROUTER_API_KEY no está configurada.*"
+                        response_text = f"⚠️ **Corte en el Núcleo Principal:** {str(e_gemini)}\n\n*El sistema intentó usar el Cerebro de Respaldo (Hugging Face), pero la variable HUGGINGFACE_API_KEY no está configurada.*"
                         intent = "llm_error"
                 
         except ImportError:
