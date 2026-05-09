@@ -446,8 +446,6 @@ class BrainHandler(BaseHTTPRequestHandler):
                             with urllib.request.urlopen(req) as resp:
                                 data = json.loads(resp.read().decode())
                                 response_text = data['choices'][0]['message']['content']
-                                # Añadir un mini aviso visual para el usuario de que entró el failover
-                                response_text += "\n\n*(⚡ Redirigido a Servidor de Respaldo: Hugging Face)*"
                         except Exception as e_hf:
                             import urllib.error
                             if isinstance(e_hf, urllib.error.HTTPError):
