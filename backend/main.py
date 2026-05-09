@@ -426,7 +426,6 @@ class BrainHandler(BaseHTTPRequestHandler):
                     # FAILOVER: Si falla Gemini, saltamos a OpenRouter (Llama 3 Gratis)
                     if openrouter_key:
                         import urllib.request
-                        import json
                         
                         req = urllib.request.Request(
                             "https://openrouter.ai/api/v1/chat/completions",
