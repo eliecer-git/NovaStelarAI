@@ -436,7 +436,7 @@ class BrainHandler(BaseHTTPRequestHandler):
                                 "X-Title": "NovaStelar AI"
                             },
                             data=json.dumps({
-                                "model": "meta-llama/llama-3.3-70b-instruct:free",
+                                "model": "meta-llama/llama-3.2-3b-instruct:free",
                                 "messages": [
                                     {"role": "system", "content": system_instruction},
                                     {"role": "user", "content": prompt}
