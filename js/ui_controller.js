@@ -158,6 +158,11 @@ function saveChatsToLocal() {
 
 document.addEventListener('DOMContentLoaded', () => {
     if (chatSessions.length > 0) renderHistorySidebar();
+    
+    // Auto-colapsar sidebar en móviles para no tapar la pantalla
+    if (window.innerWidth <= 768) {
+        toggleSidebar();
+    }
 });
 
 window.loadChat = function (id) {

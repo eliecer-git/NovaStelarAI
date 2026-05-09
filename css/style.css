@@ -37,6 +37,16 @@
     margin-left: -280px;
 }
 
+@media (max-width: 768px) {
+    #sidebar {
+        position: absolute;
+        box-shadow: 4px 0 25px rgba(0,0,0,0.1);
+    }
+    .dark #sidebar {
+        box-shadow: 4px 0 25px rgba(0,0,0,0.8);
+    }
+}
+
 @keyframes aiGlow {
     0% {
         box-shadow: 0 0 10px rgba(124, 172, 248, 0.1);
