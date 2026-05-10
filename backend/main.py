@@ -395,14 +395,12 @@ class BrainHandler(BaseHTTPRequestHandler):
             elif intent == "math":
                 response_text = solve_math(prompt)
             else:
-                # ====== NÚCLEO NEURONAL CON FAILOVER (GEMINI -> NVIDIA -> HUGGING FACE) ======
+                # ====== NÚCLEO NEURONAL CON GOOGLE AI STUDIO (GEMINI) ======
                 import os
                 from google import genai
                 from google.genai import types
                 
                 api_key = os.environ.get("GOOGLE_API_KEY")
-                nvidia_key = os.environ.get("NVIDIA_API_KEY")
-                hf_key = os.environ.get("HUGGINGFACE_API_KEY")
                 
                 system_instruction = "Eres NovaStelar, el asistente virtual amigable creado por Eliecer. Actúa con mucha naturalidad y cercanía, como si estuvieras hablando con un amigo. NO suenes como un robot corporativo. Usa emojis, sé breve, divertido y empático. Nunca empieces tus respuestas diciendo '¡Hola! Qué alegría...' todo el tiempo, sé espontáneo."
                 if mode == 'aprendizaje':
@@ -410,10 +408,10 @@ class BrainHandler(BaseHTTPRequestHandler):
                 
                 intent = "llm_generative"
                 
-                try:
-                    if not api_key:
-                        raise Exception("GOOGLE_API_KEY no encontrada")
-                        
+                if not api_key:
+                    response_text = "⚠️ **Error de Configuración:** GOOGLE_API_KEY no encontrada en las variables de entorno."
+                    intent = "llm_error"
+                else:
                     client = genai.Client(api_key=api_key)
                     response = client.models.generate_content(
                         model="gemini-2.0-flash",
@@ -423,73 +421,6 @@ class BrainHandler(BaseHTTPRequestHandler):
                         )
                     )
                     response_text = response.text
-                except Exception as e_gemini:
-                    # FAILOVER LEVEL 1: Si falla Gemini, saltamos a NVIDIA NIM (Llama 3 70B)
-                    if nvidia_key:
-                        import urllib.request
-                        
-                        req = urllib.request.Request(
-                            "https://integrate.api.nvidia.com/v1/chat/completions",
-                            headers={
-                                "Authorization": f"Bearer {nvidia_key}",
-                                "Content-Type": "application/json"
-                            },
-                            data=json.dumps({
-                                "model": "meta/llama3-70b-instruct",
-                                "messages": [
-                                    {"role": "system", "content": system_instruction},
-                                    {"role": "user", "content": prompt}
-                                ],
-                                "max_tokens": 800
-                            }).encode("utf-8")
-                        )
-                        try:
-                            with urllib.request.urlopen(req) as resp:
-                                data = json.loads(resp.read().decode())
-                                response_text = data['choices'][0]['message']['content']
-                        except Exception as e_nv:
-                            import urllib.error
-                            if isinstance(e_nv, urllib.error.HTTPError):
-                                err_msg = e_nv.read().decode()
-                            else:
-                                err_msg = str(e_nv)
-                            response_text = f"⚠️ **Error Múltiple:** Gemini falló ({str(e_gemini)}). Nvidia falló ({err_msg})."
-                            intent = "llm_error"
-                            
-                    # FAILOVER LEVEL 2: Si falla Nvidia (o no hay clave), saltamos a Hugging Face
-                    elif hf_key:
-                        import urllib.request
-                        
-                        req = urllib.request.Request(
-                            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3/v1/chat/completions",
-                            headers={
-                                "Authorization": f"Bearer {hf_key}",
-                                "Content-Type": "application/json"
-                            },
-                            data=json.dumps({
-                                "model": "mistralai/Mistral-7B-Instruct-v0.3",
-                                "messages": [
-                                    {"role": "system", "content": system_instruction},
-                                    {"role": "user", "content": prompt}
-                                ],
-                                "max_tokens": 800
-                            }).encode("utf-8")
-                        )
-                        try:
-                            with urllib.request.urlopen(req) as resp:
-                                data = json.loads(resp.read().decode())
-                                response_text = data['choices'][0]['message']['content']
-                        except Exception as e_hf:
-                            import urllib.error
-                            if isinstance(e_hf, urllib.error.HTTPError):
-                                err_msg = e_hf.read().decode()
-                            else:
-                                err_msg = str(e_hf)
-                            response_text = f"⚠️ **Error en la Red:** Gemini falló ({str(e_gemini)}). Hugging Face falló ({err_msg})."
-                            intent = "llm_error"
-                    else:
-                        response_text = f"⚠️ **Corte en el Núcleo Principal:** {str(e_gemini)}\n\n*El sistema intentó usar el Cerebro de Respaldo (Hugging Face), pero la variable HUGGINGFACE_API_KEY no está configurada.*"
-                        intent = "llm_error"
                 
         except ImportError:
             response_text = "⚠️ **Error de Librerías:** Faltan librerías como `google-genai`. Instálalas con pip."
