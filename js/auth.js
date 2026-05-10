@@ -168,9 +168,28 @@ window.saveChatsToCloud = async function() {
 };
 
 /**
- * Cerrar Sesión
+ * Cerrar Sesión (Abre el Modal)
  */
 window.logout = function() {
+    const modal = document.getElementById('logout-modal');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('div').classList.remove('scale-95');
+    }, 10);
+};
+
+window.closeLogoutModal = function() {
+    const modal = document.getElementById('logout-modal');
+    modal.classList.remove('opacity-100');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
+
+window.executeLogout = function() {
+    window.closeLogoutModal();
     window.showToast('Cerrando conexión estelar...', 'logout', 2000);
     
     // LIMPIEZA DE SEGURIDAD: Borrar todo rastro local al salir
@@ -180,9 +199,8 @@ window.logout = function() {
     localStorage.removeItem('nova_ai_name');
     
     auth.signOut().then(() => {
-        // Pequeño retardo para que se vea el toast
         setTimeout(() => {
-            window.location.reload(); // Recargar para volver a la landing limpia
+            window.location.reload();
         }, 1000);
     }).catch((error) => {
         console.error("Error al cerrar sesión:", error);
