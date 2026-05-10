@@ -233,6 +233,9 @@ let currentSessionId = null;
 
 // Re-pintar historial anterior
 window.renderHistorySidebar = function() {
+    // ACTUALIZACIÓN DE SEGURIDAD: Obtener siempre lo último de localStorage
+    chatSessions = JSON.parse(localStorage.getItem('novastelar_chats')) || [];
+    
     ui.historyList.innerHTML = '';
     chatSessions.forEach(session => {
         const li = document.createElement('li');

@@ -128,7 +128,14 @@ window.syncChatsFromCloud = async function(uid) {
         if (doc.exists) {
             const data = doc.data();
             if (data.chats) {
-                localStorage.setItem('nova_chat_history', JSON.stringify(data.chats));
+                // Sincronizar nombre si existe en la nube
+                if (data.userName && window.ui && window.ui.configUserName) {
+                    window.ui.configUserName.value = data.userName;
+                    localStorage.setItem('nova_user_name', data.userName);
+                    if (window.ui.userGreetingText) window.ui.userGreetingText.textContent = `Hola, ${data.userName}`;
+                }
+
+                localStorage.setItem('novastelar_chats', JSON.stringify(data.chats));
                 // Recargar el historial en la UI
                 if (window.renderHistorySidebar) window.renderHistorySidebar();
             }
@@ -145,15 +152,18 @@ window.saveChatsToCloud = async function() {
     const user = auth.currentUser;
     if (!user) return;
     
-    const chats = JSON.parse(localStorage.getItem('nova_chat_history') || '[]');
+    const chats = JSON.parse(localStorage.getItem('novastelar_chats') || '[]');
+    const userName = localStorage.getItem('nova_user_name');
+
     try {
         await db.collection('users').doc(user.uid).set({
             chats: chats,
+            userName: userName,
             lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
-        console.log("Chats guardados en la nube.");
+        console.log("Datos sincronizados con la nube.");
     } catch (e) {
-        console.error("Error guardando chats:", e);
+        console.error("Error guardando datos:", e);
     }
 };
 
@@ -162,6 +172,12 @@ window.saveChatsToCloud = async function() {
  */
 window.logout = function() {
     window.showToast('Cerrando conexión estelar...', 'logout', 2000);
+    
+    // LIMPIEZA DE SEGURIDAD: Borrar todo rastro local al salir
+    localStorage.removeItem('nova_chat_history');
+    localStorage.removeItem('novastelar_chats');
+    localStorage.removeItem('nova_user_name');
+    localStorage.removeItem('nova_ai_name');
     
     auth.signOut().then(() => {
         // Pequeño retardo para que se vea el toast
