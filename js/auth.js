@@ -157,11 +157,30 @@ window.saveChatsToCloud = async function() {
     }
 };
 
+/**
+ * Cerrar Sesión
+ */
+window.logout = function() {
+    window.showToast('Cerrando conexión estelar...', 'logout', 2000);
+    
+    auth.signOut().then(() => {
+        // Pequeño retardo para que se vea el toast
+        setTimeout(() => {
+            window.location.reload(); // Recargar para volver a la landing limpia
+        }, 1000);
+    }).catch((error) => {
+        console.error("Error al cerrar sesión:", error);
+        window.showToast('Error al cerrar sesión.', 'error');
+    });
+};
+
 // --- ESCUCHADOR DE ESTADO --- //
 auth.onAuthStateChanged((user) => {
     if (user) {
         console.log("Usuario autenticado:", user.email);
-        // Podríamos saltar la landing si ya está logueado, pero por ahora lo dejamos manual
+        // Sincronizar y entrar automáticamente (Persistencia)
+        window.syncChatsFromCloud(user.uid);
+        window.enterApp('social'); 
     } else {
         console.log("Sin sesión activa.");
     }

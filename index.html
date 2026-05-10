@@ -161,10 +161,15 @@
                 class="flex items-center gap-3 px-4 py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition text-sm w-full text-left dark:text-gray-300">
                 <span class="material-symbols-rounded text-xl" id="theme-icon">dark_mode</span> Cambiar Tema
             </button>
-            <button id="btn-settings"
-                class="flex items-center gap-3 px-4 py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition text-sm w-full text-left dark:text-gray-300">
-                <span class="material-symbols-rounded text-xl">settings</span> Ajustes
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="btn-settings" class="flex-1 flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 group">
+                    <span class="material-symbols-rounded text-[20px] text-gray-500 group-hover:rotate-90 transition-transform duration-500">settings</span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Ajustes</span>
+                </button>
+                <button id="btn-logout" onclick="window.logout()" class="p-3 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all duration-300" title="Cerrar Sesión">
+                    <span class="material-symbols-rounded text-[20px]">logout</span>
+                </button>
+            </div>
         </div>
     </aside>
 
