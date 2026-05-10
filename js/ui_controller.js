@@ -38,11 +38,91 @@ window.ui = {
 };
 
 // --- CAPA 1: LANDING & AUTH TRANSITION --- //
-window.enterApp = function(mode) {
-    const landing = document.getElementById('landing-page');
-    window.showToast(mode === 'login' ? 'Abriendo puente de seguridad...' : 'Iniciando secuencia de creación de núcleo...', 'rocket_launch');
+window.showAuthPortal = function(mode) {
+    const initialView = document.getElementById('landing-initial-view');
+    const portal = document.getElementById('auth-portal');
+    const title = document.getElementById('auth-portal-title');
+    const verifyGroup = document.getElementById('verify-password-group');
+    const btnMain = document.querySelector('.btn-portal-main');
     
-    landing.classList.add('hidden');
+    // Limpiar campos al entrar
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-verify-password').value = '';
+    
+    initialView.classList.add('hidden');
+    portal.classList.remove('hidden');
+    
+    if (mode === 'login') {
+        title.innerText = 'INICIA SESIÓN';
+        verifyGroup.style.display = 'none';
+        btnMain.innerText = 'INICIAR SESIÓN';
+    } else {
+        title.innerText = 'CREA TU CUENTA';
+        verifyGroup.style.display = 'flex';
+        btnMain.innerText = 'CREAR CUENTA';
+    }
+};
+
+window.hideAuthPortal = function() {
+    document.getElementById('landing-initial-view').classList.remove('hidden');
+    document.getElementById('auth-portal').classList.add('hidden');
+    
+    // Limpiar campos al salir
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-verify-password').value = '';
+};
+
+window.togglePasswordVisibility = function(id) {
+    const input = document.getElementById(id);
+    const icon = document.getElementById('eye-icon-' + id);
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.innerText = 'visibility_off';
+    } else {
+        input.type = 'password';
+        icon.innerText = 'visibility';
+    }
+};
+
+window.enterApp = function(mode) {
+    // Solo validamos campos si venimos del formulario de Email/Password
+    if (mode === 'email-auth') {
+        const pass = document.getElementById('auth-password').value;
+        const verifyPass = document.getElementById('auth-verify-password').value;
+        const email = document.getElementById('auth-email').value;
+        const isSignup = document.getElementById('verify-password-group').style.display !== 'none';
+
+        if (!email) {
+            window.showToast('Por favor, ingresa tu correo electrónico.', 'mail');
+            return;
+        }
+
+        if (isSignup) {
+            if (pass !== verifyPass) {
+                window.showToast('Las contraseñas no coinciden.', 'warning');
+                return;
+            }
+            if (pass.length < 6) {
+                window.showToast('La contraseña debe tener al menos 6 caracteres.', 'lock_reset');
+                return;
+            }
+        }
+    }
+
+    const landing = document.getElementById('landing-page');
+    const message = (mode === 'email-auth' || mode === 'social') ? 'Sincronizando con el Núcleo Neuronal...' : 'Abriendo puente de seguridad...';
+    
+    window.showToast(message, 'rocket_launch');
+    
+    // Transición Premium e Inmediata
+    landing.style.opacity = '0';
+    landing.style.transform = 'scale(1.1)';
+    setTimeout(() => {
+        landing.classList.add('hidden');
+        landing.style.display = 'none';
+    }, 500);
     
     // Enfocar el input después de la animación
     setTimeout(() => {
@@ -152,18 +232,76 @@ let chatSessions = JSON.parse(localStorage.getItem('novastelar_chats')) || [];
 let currentSessionId = null;
 
 // Re-pintar historial anterior
-function renderHistorySidebar() {
+window.renderHistorySidebar = function() {
     ui.historyList.innerHTML = '';
     chatSessions.forEach(session => {
         const li = document.createElement('li');
+        li.className = 'relative group history-item';
         li.innerHTML = `
             <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${session.id})">
-                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${session.summary}
+                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> 
+                <span class="session-name">${session.summary}</span>
             </button>
+            <div class="chat-options-menu">
+                <button class="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-gray-400" onclick="window.toggleChatOptions(event, ${session.id})">
+                    <span class="material-symbols-rounded text-[18px]">more_vert</span>
+                </button>
+                <div id="dropdown-${session.id}" class="options-dropdown">
+                    <div class="option-item" onclick="window.renameChat(${session.id})">
+                        <span class="material-symbols-rounded text-[16px]">edit</span> Renombrar
+                    </div>
+                    <div class="option-item delete" onclick="window.deleteChat(${session.id})">
+                        <span class="material-symbols-rounded text-[16px]">delete</span> Eliminar
+                    </div>
+                </div>
+            </div>
         `;
         ui.historyList.prepend(li);
     });
 }
+
+// Funciones de Gestión de Chat
+window.toggleChatOptions = function(event, id) {
+    event.stopPropagation();
+    // Cerrar otros dropdowns
+    document.querySelectorAll('.options-dropdown').forEach(d => {
+        if (d.id !== `dropdown-${id}`) d.classList.remove('show');
+    });
+    const dropdown = document.getElementById(`dropdown-${id}`);
+    dropdown.classList.toggle('show');
+};
+
+window.renameChat = function(id) {
+    const session = chatSessions.find(s => s.id === id);
+    if (!session) return;
+    const newName = prompt("Nuevo nombre para el chat:", session.summary);
+    if (newName && newName.trim()) {
+        session.summary = newName.trim();
+        saveChatsToLocal();
+        window.renderHistorySidebar();
+        window.showToast('Chat renombrado.', 'edit');
+    }
+};
+
+window.deleteChat = function(id) {
+    if (confirm("¿Estás seguro de que deseas eliminar este chat?")) {
+        chatSessions = chatSessions.filter(s => s.id !== id);
+        saveChatsToLocal();
+        window.renderHistorySidebar();
+        window.showToast('Chat eliminado.', 'delete');
+        
+        if (currentSessionId === id) {
+            ui.chatThread.innerHTML = '';
+            ui.zeroState.style.display = 'flex';
+            currentSessionId = null;
+        }
+    }
+};
+
+// Cerrar dropdowns al hacer clic fuera
+document.addEventListener('click', () => {
+    document.querySelectorAll('.options-dropdown').forEach(d => d.classList.remove('show'));
+});
 
 function saveChatsToLocal() {
     localStorage.setItem('novastelar_chats', JSON.stringify(chatSessions));
