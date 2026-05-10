@@ -260,18 +260,23 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         console.log("Sincronizando identidad para:", user.email);
         
-        // 1. Traer lo que hay en la nube
-        await window.syncChatsFromCloud(user.uid);
+        // 1. Intentar traer lo que hay en la nube
+        try {
+            await window.syncChatsFromCloud(user.uid);
+        } catch (e) {
+            console.warn("No se pudo sincronizar con la nube, usando datos locales si existen.");
+        }
         
-        // 2. Verificar si tenemos nombre
-        const localName = localStorage.getItem('nova_user_name');
-        if (!localName) {
-            // Si no hay nombre local ni en la nube, mostrar bienvenida
+        // 2. Verificar si tenemos nombre (Prioridad: Cloud > Local)
+        let name = localStorage.getItem('nova_user_name');
+        
+        if (!name) {
+            // Solo si NO hay nombre en ningún lado, pedimos bienvenida
             window.showWelcomeModal();
         } else {
-            // Actualizar greeting si ya existe
+            // Si ya hay nombre, actualizar saludo y entrar directo
             const greeting = document.getElementById('user-greeting');
-            if (greeting) greeting.textContent = `Hola, ${localName}`;
+            if (greeting) greeting.textContent = `Hola, ${name}`;
         }
         
         // 3. Entrar a la app
