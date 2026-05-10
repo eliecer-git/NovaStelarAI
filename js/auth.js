@@ -203,10 +203,9 @@ window.executeLogout = function() {
     window.closeLogoutModal();
     window.showToast('Cerrando conexión estelar...', 'logout', 2000);
     
-    // LIMPIEZA DE SEGURIDAD: Borrar todo rastro local al salir
+    // LIMPIEZA: Borrar chats locales (pero NO los nombres por UID)
     localStorage.removeItem('nova_chat_history');
     localStorage.removeItem('novastelar_chats');
-    localStorage.removeItem('nova_user_name');
     localStorage.removeItem('nova_ai_name');
     
     auth.signOut().then(() => {
@@ -238,11 +237,16 @@ window.saveInitialName = async function() {
         return;
     }
 
+    const user = auth.currentUser;
+    const uid = user ? user.uid : 'local';
+
     window.showToast(`Perfecto, ${name}. Iniciando sistemas...`, 'stars');
+    // Guardar por UID para que no se pierda al cerrar sesión
+    localStorage.setItem('nova_name_' + uid, name);
     localStorage.setItem('nova_user_name', name);
     
-    // Guardar en la nube de inmediato
-    await window.saveChatsToCloud();
+    // Intentar guardar en la nube
+    try { await window.saveChatsToCloud(); } catch(e) {}
 
     // Actualizar UI
     const greeting = document.getElementById('user-greeting');
@@ -264,17 +268,23 @@ auth.onAuthStateChanged(async (user) => {
         try {
             await window.syncChatsFromCloud(user.uid);
         } catch (e) {
-            console.warn("No se pudo sincronizar con la nube, usando datos locales si existen.");
+            console.warn("Nube no disponible, usando datos locales.");
         }
         
-        // 2. Verificar si tenemos nombre (Prioridad: Cloud > Local)
-        let name = localStorage.getItem('nova_user_name');
+        // 2. Verificar nombre: UID local > genérico > pedir
+        let name = localStorage.getItem('nova_name_' + user.uid) 
+                || localStorage.getItem('nova_user_name');
+        
+        if (!name && user.displayName) {
+            // Si vino de Google/GitHub, usar su nombre
+            name = user.displayName.split(' ')[0];
+            localStorage.setItem('nova_name_' + user.uid, name);
+        }
         
         if (!name) {
-            // Solo si NO hay nombre en ningún lado, pedimos bienvenida
             window.showWelcomeModal();
         } else {
-            // Si ya hay nombre, actualizar saludo y entrar directo
+            localStorage.setItem('nova_user_name', name);
             const greeting = document.getElementById('user-greeting');
             if (greeting) greeting.textContent = `Hola, ${name}`;
         }
