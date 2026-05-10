@@ -1,4 +1,12 @@
 #!/bin/bash
+# Cargar claves de API automáticamente
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+    echo "🔑 Claves de API cargadas automáticamente desde .env"
+fi
+
 echo "==================================================="
 echo "🌌 INICIANDO MÁQUINA VIRTUAL NOVASTELAR CORE 🌌"
 echo "==================================================="
