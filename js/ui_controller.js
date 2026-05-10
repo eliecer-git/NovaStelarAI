@@ -9,7 +9,7 @@ window.ui = {
     btnToggleHeader: document.getElementById('header-toggle-sidebar'),
     sidebar: document.getElementById('sidebar'),
     btnNewChat: document.getElementById('btn-new-chat'),
-    zeroState: document.getElementById('zero-state'),
+    centralContent: document.getElementById('central-content'),
     chatThread: document.getElementById('conversation-thread'),
     chatStream: document.getElementById('chat-stream'),
     historyList: document.getElementById('history-list'),
@@ -193,7 +193,7 @@ ui.cancelSettings.addEventListener('click', closeUIModal);
 ui.saveSettings.addEventListener('click', () => {
     if (settingsChanged) {
         // Obtenemos los nombres del DOM
-        const userName = ui.configUserName ? ui.configUserName.value.trim() : 'Eliecer';
+        const userName = ui.configUserName ? ui.configUserName.value.trim() : 'Viajero Estelar';
         const aiName = ui.configAiName ? ui.configAiName.value.trim() : 'NovaStelar';
 
         // Lo guardamos en localStorage persistente
@@ -295,7 +295,7 @@ window.deleteChat = function(id) {
         
         if (currentSessionId === id) {
             ui.chatThread.innerHTML = '';
-            ui.zeroState.style.display = 'flex';
+            ui.centralContent.style.display = 'flex';
             currentSessionId = null;
         }
     }
@@ -329,7 +329,7 @@ window.loadChat = function (id) {
     currentSessionId = id;
 
     // Cambiar la UI a la sesión seleccionada
-    ui.zeroState.style.display = 'none';
+    ui.centralContent.style.display = 'none';
     ui.chatThread.innerHTML = ''; // Limpiar el hilo actual
     ui.chatThread.classList.remove('hidden');
     isFirstMessage = false;
@@ -479,7 +479,7 @@ window.submitPrompt = async function (text) {
 
     // Zero State y Creación de Sesión (Solo en el primer mensaje)
     if (isFirstMessage || currentSessionId === null) {
-        ui.zeroState.style.display = 'none';
+        ui.centralContent.style.display = 'none';
         ui.chatThread.classList.remove('hidden');
         isFirstMessage = false;
 
@@ -581,7 +581,7 @@ function scrollBottom() {
 function resetWorkspace() {
     ui.chatThread.innerHTML = '';
     ui.chatThread.classList.add('hidden');
-    ui.zeroState.style.display = 'flex';
+    ui.centralContent.style.display = 'flex';
     isFirstMessage = true;
     currentSessionId = null; // Reiniciar para que el próximo mensaje cree una nueva sesión
     ui.input.value = '';
