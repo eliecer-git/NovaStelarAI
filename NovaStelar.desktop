@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=NovaStelar AI
+Comment=Inicia la Inteligencia Artificial NovaStelar
+Exec=bash -c "cd /home/eliecer/clases/antigravity/NovaStelarAI && ./start_core.sh; exec bash"
+Icon=utilities-terminal
+Terminal=true
+Type=Application
+Categories=Development;

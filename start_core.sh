@@ -30,6 +30,7 @@ sleep 1
 
 echo "==================================================="
 echo "🚀 ¡SISTEMA OPERATIVO Y CONSCIENTE! 🚀"
-echo "Entra a: http://localhost:8082"
+echo "Abriendo navegador en: http://localhost:8082"
 echo "==================================================="
+xdg-open "http://localhost:8082" 2>/dev/null &
 wait
