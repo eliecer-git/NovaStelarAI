@@ -219,6 +219,42 @@ window.executeLogout = function() {
     });
 };
 
+/**
+ * Modal de Bienvenida (Personalización)
+ */
+window.showWelcomeModal = function() {
+    const modal = document.getElementById('welcome-modal');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('div').classList.remove('scale-90');
+    }, 50);
+};
+
+window.saveInitialName = async function() {
+    const name = document.getElementById('input-welcome-name').value.trim();
+    if (!name) {
+        window.showToast('Por favor, dime un nombre para saludarte.', 'warning');
+        return;
+    }
+
+    window.showToast(`Perfecto, ${name}. Iniciando sistemas...`, 'stars');
+    localStorage.setItem('nova_user_name', name);
+    
+    // Guardar en la nube de inmediato
+    await window.saveChatsToCloud();
+
+    // Actualizar UI
+    const greeting = document.getElementById('user-greeting');
+    if (greeting) greeting.textContent = `Hola, ${name}`;
+
+    // Cerrar modal
+    const modal = document.getElementById('welcome-modal');
+    modal.classList.remove('opacity-100');
+    modal.querySelector('div').classList.add('scale-90');
+    setTimeout(() => modal.classList.add('hidden'), 500);
+};
+
 // --- ESCUCHADOR DE ESTADO --- //
 auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -227,8 +263,16 @@ auth.onAuthStateChanged(async (user) => {
         // 1. Traer lo que hay en la nube
         await window.syncChatsFromCloud(user.uid);
         
-        // 2. Si hay algo local que no estaba en la nube, lo subimos
-        await window.saveChatsToCloud();
+        // 2. Verificar si tenemos nombre
+        const localName = localStorage.getItem('nova_user_name');
+        if (!localName) {
+            // Si no hay nombre local ni en la nube, mostrar bienvenida
+            window.showWelcomeModal();
+        } else {
+            // Actualizar greeting si ya existe
+            const greeting = document.getElementById('user-greeting');
+            if (greeting) greeting.textContent = `Hola, ${localName}`;
+        }
         
         // 3. Entrar a la app
         window.enterApp('social'); 

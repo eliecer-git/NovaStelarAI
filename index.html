@@ -198,19 +198,16 @@
 
         <!-- Chat Area -->
         <div class="flex-1 overflow-y-auto flex flex-col items-center custom-scrollbar pb-[180px]" id="chat-stream">
-            <!-- Zero State / Pantalla de Bienvenida -->
-            <div id="zero-state" class="w-full max-w-[850px] flex flex-col items-center mt-[8vh] px-4">
-                <div
-                    class="w-14 h-14 rounded-2xl bg-white dark:bg-nova-800 flex items-center justify-center shadow-[0_0_30px_rgba(168,199,250,0.2)] dark:shadow-[0_0_30px_rgba(168,199,250,0.1)] mb-6 border border-gray-200 dark:border-white/5 ai-glow-pulse">
-                    <span class="material-symbols-rounded text-3xl text-brand-500">auto_awesome</span>
+            <!-- Central Content -->
+            <div id="central-content" class="flex-1 flex flex-col items-center justify-center p-4 min-h-[60vh]">
+                <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-8 animate-pulse">
+                    <span class="material-symbols-rounded text-3xl text-white/40">auto_awesome</span>
                 </div>
-                <h1 id="user-greeting-text"
-                    class="text-4xl sm:text-[44px] font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-brand-500 dark:from-brand-500 dark:via-purple-400 dark:to-brand-500 bg-[length:200%_auto] animate-gradient mb-10 text-center tracking-tight">
-                    Hola, Eliecer
+                <h1 id="user-greeting" class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/40 mb-12 text-center">
+                    Hola, Viajero Estelar
                 </h1>
 
-                <!-- 4 Sugerencias Gemini Style -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
                     <button class="suggestion-card group"
                         onclick="window.submitPrompt('Escribe un script en Python para analizar datos masivos usando DataFrames.')">
                         <span
@@ -426,6 +423,28 @@
                         Sí, Salir
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Bienvenida (Personalización de Nombre) -->
+    <div id="welcome-modal" class="fixed inset-0 z-[250000] flex items-center justify-center bg-black/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-500">
+        <div class="bg-[#0f172a]/90 backdrop-blur-2xl border border-blue-500/30 p-10 rounded-[2.5rem] max-w-md w-full mx-4 shadow-[0_0_50px_rgba(59,130,246,0.2)] transform scale-90 transition-transform duration-500">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl">face</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-3">¡Bienvenido al Núcleo!</h2>
+                <p class="text-gray-400 text-sm mb-8">Antes de comenzar nuestra travesía estelar, dime...</p>
+                
+                <div class="relative mb-8">
+                    <input type="text" id="input-welcome-name" placeholder="Tu nombre o alias..." 
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-blue-500/50 transition-all text-center text-lg">
+                </div>
+                
+                <button onclick="window.saveInitialName()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all">
+                    COMENZAR AVENTURA
+                </button>
             </div>
         </div>
     </div>
