@@ -299,3 +299,122 @@
     background-color: transparent;
     padding: 0;
 }
+
+/* --- LANDING PAGE (CAPA 1) --- */
+#landing-page {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: url('../assets/landing_bg.png') no-repeat center center;
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s var(--transition-curve), transform 0.8s var(--transition-curve);
+}
+
+#landing-page.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.1);
+}
+
+.landing-card {
+    background: rgba(19, 19, 20, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    padding: 60px;
+    text-align: center;
+    max-width: 900px;
+    width: 90%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 1s ease-out;
+}
+
+.landing-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    background: linear-gradient(to right, #a8c7fa, #7cacf8, #c2e7ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+}
+
+.landing-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 50px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.auth-grid {
+    display: grid;
+    grid-template-cols: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+}
+
+.auth-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px;
+    transition: all 0.3s var(--transition-curve);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.auth-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(124, 172, 248, 0.5);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.auth-card span {
+    font-size: 40px;
+    color: #a8c7fa;
+}
+
+.auth-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+}
+
+.auth-card p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 640px) {
+    .auth-grid {
+        grid-template-cols: 1fr;
+    }
+    .landing-title {
+        font-size: 2.5rem;
+    }
+    .landing-card {
+        padding: 40px 20px;
+    }
+}

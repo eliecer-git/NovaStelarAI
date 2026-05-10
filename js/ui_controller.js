@@ -37,6 +37,19 @@ window.ui = {
     userGreetingText: document.getElementById('user-greeting-text')
 };
 
+// --- CAPA 1: LANDING & AUTH TRANSITION --- //
+window.enterApp = function(mode) {
+    const landing = document.getElementById('landing-page');
+    window.showToast(mode === 'login' ? 'Abriendo puente de seguridad...' : 'Iniciando secuencia de creación de núcleo...', 'rocket_launch');
+    
+    landing.classList.add('hidden');
+    
+    // Enfocar el input después de la animación
+    setTimeout(() => {
+        ui.input.focus();
+    }, 800);
+};
+
 // --- SISTEMA TOAST (Notificaciones Profesionales) --- //
 window.showToast = function (message, icon = 'info', duration = 3000) {
     const toast = document.createElement('div');
