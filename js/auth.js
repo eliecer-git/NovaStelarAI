@@ -149,10 +149,21 @@ window.syncChatsFromCloud = async function(uid) {
  * Guardar Chats en la Nube
  */
 window.saveChatsToCloud = async function() {
+    console.log("Iniciando guardado en la nube...");
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+        console.warn("No hay usuario autenticado. No se puede guardar en la nube.");
+        return;
+    }
     
-    const chats = JSON.parse(localStorage.getItem('novastelar_chats') || '[]');
+    // Obtener chats locales
+    const chatsRaw = localStorage.getItem('novastelar_chats');
+    if (!chatsRaw) {
+        console.log("No hay chats para guardar.");
+        return;
+    }
+
+    const chats = JSON.parse(chatsRaw);
     const userName = localStorage.getItem('nova_user_name');
 
     try {
@@ -161,9 +172,9 @@ window.saveChatsToCloud = async function() {
             userName: userName,
             lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
-        console.log("Datos sincronizados con la nube.");
+        console.log("✅ ÉXITO: Chats sincronizados en Firestore para:", user.email);
     } catch (e) {
-        console.error("Error guardando datos:", e);
+        console.error("❌ ERROR al guardar en Firestore:", e);
     }
 };
 
@@ -209,13 +220,19 @@ window.executeLogout = function() {
 };
 
 // --- ESCUCHADOR DE ESTADO --- //
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
     if (user) {
-        console.log("Usuario autenticado:", user.email);
-        // Sincronizar y entrar automáticamente (Persistencia)
-        window.syncChatsFromCloud(user.uid);
+        console.log("Sincronizando identidad para:", user.email);
+        
+        // 1. Traer lo que hay en la nube
+        await window.syncChatsFromCloud(user.uid);
+        
+        // 2. Si hay algo local que no estaba en la nube, lo subimos
+        await window.saveChatsToCloud();
+        
+        // 3. Entrar a la app
         window.enterApp('social'); 
     } else {
-        console.log("Sin sesión activa.");
+        console.log("NovaStelar: Esperando conexión...");
     }
 });
