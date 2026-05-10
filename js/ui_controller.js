@@ -308,6 +308,8 @@ document.addEventListener('click', () => {
 
 function saveChatsToLocal() {
     localStorage.setItem('novastelar_chats', JSON.stringify(chatSessions));
+    // SINCRONIZACIÓN ESTELAR: Mandar a la nube de Firebase de inmediato
+    if (window.saveChatsToCloud) window.saveChatsToCloud();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
