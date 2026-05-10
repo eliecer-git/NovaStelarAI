@@ -119,62 +119,86 @@ window.authWithEmail = function() {
 };
 
 /**
- * Sincronización de Chats con Firestore
+ * Sincronización de Chats con Firestore (REST API - Bypass SDK)
  */
 window.syncChatsFromCloud = async function(uid) {
-    console.log("Sincronizando chats para:", uid);
-    try {
-        const doc = await db.collection('users').doc(uid).get();
-        if (doc.exists) {
-            const data = doc.data();
-            if (data.chats) {
-                // Sincronizar nombre si existe en la nube
-                if (data.userName && window.ui && window.ui.configUserName) {
-                    window.ui.configUserName.value = data.userName;
-                    localStorage.setItem('nova_user_name', data.userName);
-                    if (window.ui.userGreetingText) window.ui.userGreetingText.textContent = `Hola, ${data.userName}`;
-                }
+    console.log("☁️ Sincronizando chats para:", uid);
+    const user = auth.currentUser;
+    if (!user) return;
 
-                localStorage.setItem('novastelar_chats', JSON.stringify(data.chats));
-                // Recargar el historial en la UI
-                if (window.renderHistorySidebar) window.renderHistorySidebar();
+    try {
+        const token = await user.getIdToken();
+        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${uid}`;
+        
+        const response = await fetch(url, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (response.ok) {
+            const doc = await response.json();
+            if (doc.fields) {
+                if (doc.fields.chats && doc.fields.chats.stringValue) {
+                    const chats = JSON.parse(doc.fields.chats.stringValue);
+                    localStorage.setItem('novastelar_chats', JSON.stringify(chats));
+                    if (window.renderHistorySidebar) window.renderHistorySidebar();
+                }
+                if (doc.fields.userName && doc.fields.userName.stringValue) {
+                    const name = doc.fields.userName.stringValue;
+                    localStorage.setItem('nova_user_name', name);
+                    localStorage.setItem('nova_name_' + uid, name);
+                }
+                console.log("✅ Chats descargados de la nube (REST API)");
             }
+        } else if (response.status === 404) {
+            console.log("📭 No hay datos previos en la nube para este usuario.");
+        } else {
+            const errText = await response.text();
+            console.error("❌ REST API error:", response.status, errText);
         }
     } catch (e) {
-        console.error("Error sincronizando chats:", e);
+        console.warn("⚠️ No se pudo conectar a la nube:", e.message);
     }
 };
 
 /**
- * Guardar Chats en la Nube
+ * Guardar Chats en la Nube (REST API - Bypass SDK)
  */
 window.saveChatsToCloud = async function() {
-    console.log("Iniciando guardado en la nube...");
     const user = auth.currentUser;
-    if (!user) {
-        console.warn("No hay usuario autenticado. No se puede guardar en la nube.");
-        return;
-    }
+    if (!user) return;
     
-    // Obtener chats locales
     const chatsRaw = localStorage.getItem('novastelar_chats');
-    if (!chatsRaw) {
-        console.log("No hay chats para guardar.");
-        return;
-    }
+    if (!chatsRaw) return;
 
-    const chats = JSON.parse(chatsRaw);
-    const userName = localStorage.getItem('nova_user_name');
+    const userName = localStorage.getItem('nova_user_name') || '';
 
     try {
-        await db.collection('users').doc(user.uid).set({
-            chats: chats,
-            userName: userName,
-            lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        console.log("✅ ÉXITO: Chats sincronizados en Firestore para:", user.email);
+        const token = await user.getIdToken();
+        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${user.uid}`;
+        
+        const response = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fields: {
+                    chats: { stringValue: chatsRaw },
+                    userName: { stringValue: userName },
+                    lastUpdate: { timestampValue: new Date().toISOString() }
+                }
+            })
+        });
+
+        if (response.ok) {
+            console.log("✅ Chats guardados en la nube (REST API)");
+        } else {
+            const errText = await response.text();
+            console.error("❌ Error guardando (REST):", response.status, errText);
+        }
     } catch (e) {
-        console.error("❌ ERROR al guardar en Firestore:", e);
+        console.error("⚠️ Error de red al guardar:", e.message);
     }
 };
 
