@@ -146,6 +146,9 @@ window.syncChatsFromCloud = async function(uid) {
                     const name = doc.fields.userName.stringValue;
                     localStorage.setItem('nova_user_name', name);
                     localStorage.setItem('nova_name_' + uid, name);
+                    
+                    const avatar = document.getElementById('user-avatar-icon');
+                    if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
                 }
                 console.log("✅ Chats descargados de la nube (REST API)");
             }
@@ -275,6 +278,9 @@ window.saveInitialName = async function() {
     // Actualizar UI
     const greeting = document.getElementById('user-greeting');
     if (greeting) greeting.textContent = `Hola, ${name}`;
+    
+    const avatar = document.getElementById('user-avatar-icon');
+    if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
 
     // Cerrar modal
     const modal = document.getElementById('welcome-modal');
@@ -311,6 +317,9 @@ auth.onAuthStateChanged(async (user) => {
             localStorage.setItem('nova_user_name', name);
             const greeting = document.getElementById('user-greeting');
             if (greeting) greeting.textContent = `Hola, ${name}`;
+            
+            const avatar = document.getElementById('user-avatar-icon');
+            if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
         }
         
         // 3. Entrar a la app
