@@ -230,10 +230,11 @@ window.executeLogout = function() {
     window.closeLogoutModal();
     window.showToast('Cerrando conexión estelar...', 'logout', 2000);
     
-    // LIMPIEZA: Borrar chats locales (pero NO los nombres por UID)
+    // LIMPIEZA: Borrar chats locales y cache de nombre activo
     localStorage.removeItem('nova_chat_history');
     localStorage.removeItem('novastelar_chats');
     localStorage.removeItem('nova_ai_name');
+    localStorage.removeItem('nova_user_name');
     
     auth.signOut().then(() => {
         setTimeout(() => {
