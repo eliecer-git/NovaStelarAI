@@ -25,15 +25,7 @@ window.ui = {
     featureBadgeText: document.getElementById('feature-badge-text'),
     featureBadgeClose: document.getElementById('feature-badge-close'),
 
-    // Configuración y Utilidades
-    btnSettings: document.getElementById('btn-settings'),
-    settingsModal: document.getElementById('settings-modal'),
-    closeSettings: document.getElementById('close-settings'),
-    cancelSettings: document.getElementById('cancel-settings'),
-    saveSettings: document.getElementById('save-settings'),
     toastContainer: document.getElementById('toast-container'),
-    configUserName: document.getElementById('config-user-name'),
-    configAiName: document.getElementById('config-ai-name'),
     userGreetingText: document.getElementById('user-greeting-text')
 };
 
@@ -152,76 +144,7 @@ window.showToast = function (message, icon = 'info', duration = 3000) {
     }, duration);
 };
 
-// --- SETTINGS MODAL --- //
-let settingsChanged = false;
 
-function resetSaveButton() {
-    settingsChanged = false;
-    ui.saveSettings.disabled = true;
-    ui.saveSettings.className = 'px-5 py-2 rounded-xl text-sm font-medium transition-all duration-300 bg-gray-200 text-gray-400 dark:bg-white/5 dark:text-gray-500 cursor-not-allowed';
-}
-
-function enableSaveButton() {
-    if (!settingsChanged) {
-        settingsChanged = true;
-        ui.saveSettings.disabled = false;
-        // Activando el diseño Cósmico: Azul Oscuro y Morado Oscuro
-        ui.saveSettings.className = 'px-5 py-2 rounded-xl text-sm font-medium transition-all duration-300 bg-gradient-to-r from-blue-900 to-purple-900 hover:from-blue-800 hover:to-purple-800 text-white cursor-pointer shadow-lg shadow-purple-900/40 hover:scale-105';
-    }
-}
-
-// Detectar cualquier cambio en el panel
-const settingsInputs = ui.settingsModal.querySelectorAll('input, select');
-settingsInputs.forEach(input => {
-    input.addEventListener('input', enableSaveButton);
-    input.addEventListener('change', enableSaveButton);
-});
-
-ui.btnSettings.addEventListener('click', () => {
-    ui.settingsModal.classList.remove('opacity-0', 'pointer-events-none');
-    ui.settingsModal.children[0].classList.remove('scale-95');
-});
-
-function closeUIModal() {
-    ui.settingsModal.classList.add('opacity-0', 'pointer-events-none');
-    ui.settingsModal.children[0].classList.add('scale-95');
-    setTimeout(resetSaveButton, 300); // Reset visual después de que se esconda
-}
-
-ui.closeSettings.addEventListener('click', closeUIModal);
-ui.cancelSettings.addEventListener('click', closeUIModal);
-ui.saveSettings.addEventListener('click', () => {
-    if (settingsChanged) {
-        // Obtenemos los nombres del DOM
-        const userName = ui.configUserName ? ui.configUserName.value.trim() : 'Viajero Estelar';
-        const aiName = ui.configAiName ? ui.configAiName.value.trim() : 'NovaStelar';
-
-        // Lo guardamos en localStorage persistente
-        localStorage.setItem('nova_user_name', userName);
-        localStorage.setItem('nova_ai_name', aiName);
-
-        // Modificamos el DOM Activo Textual
-        if (ui.userGreetingText) {
-            ui.userGreetingText.textContent = `Hola, ${userName}`;
-        }
-
-        window.showToast("Datos cifrados y guardados en memoria local.", "cloud_done");
-        closeUIModal();
-    }
-});
-
-// Inicializador de Nombres Guardados
-document.addEventListener('DOMContentLoaded', () => {
-    const savedUserName = localStorage.getItem('nova_user_name');
-    const savedAiName = localStorage.getItem('nova_ai_name');
-    if (savedUserName) {
-        if (ui.configUserName) ui.configUserName.value = savedUserName;
-        if (ui.userGreetingText) ui.userGreetingText.textContent = `Hola, ${savedUserName}`;
-    }
-    if (savedAiName && ui.configAiName) {
-        ui.configAiName.value = savedAiName;
-    }
-});
 
 let isFirstMessage = true;
 let isProcessing = false;
