@@ -171,13 +171,26 @@ window.saveChatsToCloud = async function() {
     if (!user) return;
     
     const chatsRaw = localStorage.getItem('novastelar_chats');
-    if (!chatsRaw) return;
+    const userName = localStorage.getItem('nova_user_name') || localStorage.getItem('nova_name_' + user.uid) || '';
 
-    const userName = localStorage.getItem('nova_user_name') || '';
+    // Si no hay ni chats ni nombre, no guardar
+    if (!chatsRaw && !userName) return;
 
     try {
         const token = await user.getIdToken();
         const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${user.uid}`;
+        
+        let fields = {
+            lastUpdate: { timestampValue: new Date().toISOString() }
+        };
+        
+        if (chatsRaw) {
+            fields.chats = { stringValue: chatsRaw };
+        }
+        
+        if (userName) {
+            fields.userName = { stringValue: userName };
+        }
         
         const response = await fetch(url, {
             method: 'PATCH',
@@ -185,17 +198,11 @@ window.saveChatsToCloud = async function() {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                fields: {
-                    chats: { stringValue: chatsRaw },
-                    userName: { stringValue: userName },
-                    lastUpdate: { timestampValue: new Date().toISOString() }
-                }
-            })
+            body: JSON.stringify({ fields })
         });
 
         if (response.ok) {
-            console.log("✅ Chats guardados en la nube (REST API)");
+            console.log("✅ Datos (chats/nombre) guardados en la nube (REST API)");
         } else {
             const errText = await response.text();
             console.error("❌ Error guardando (REST):", response.status, errText);
