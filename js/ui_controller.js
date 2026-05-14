@@ -401,37 +401,50 @@ window.submitPrompt = async function (text) {
     ui.btnSend.innerHTML = '<span class="material-symbols-rounded text-[22px] animate-spin">refresh</span>';
 
     // Zero State y Creación de Sesión (Solo en el primer mensaje)
-    if (isFirstMessage || currentSessionId === null) {
+    if (isFirstMessage || (!window.currentFolderId && currentSessionId === null)) {
         ui.centralContent.style.display = 'none';
         ui.chatThread.classList.remove('hidden');
         isFirstMessage = false;
 
-        // Crear nueva sesión de Chat
-        currentSessionId = Date.now(); // ID único
-        const summary = text.length > 25 ? text.substring(0, 25) + '...' : text;
+        if (!window.currentFolderId) {
+            // Crear nueva sesión de Chat (Solo si no estamos en una carpeta)
+            currentSessionId = Date.now(); // ID único
+            const summary = text.length > 25 ? text.substring(0, 25) + '...' : text;
 
-        // Guardarla en Memoria Local RAM
-        chatSessions.push({
-            id: currentSessionId,
-            summary: summary,
-            messages: []
-        });
+            // Guardarla en Memoria Local RAM
+            chatSessions.push({
+                id: currentSessionId,
+                summary: summary,
+                messages: []
+            });
 
-        // Crear el botón en el Frontend (Sidebar Historial)
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${currentSessionId})">
-                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${summary}
-            </button>
-        `;
-        ui.historyList.prepend(li);
+            // Crear el botón en el Frontend (Sidebar Historial)
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${currentSessionId})">
+                    <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${summary}
+                </button>
+            `;
+            ui.historyList.prepend(li);
+        }
     }
 
     // Obtener Sesión Actual y guardar el mensaje del Usuario
-    const currentSession = chatSessions.find(s => s.id === currentSessionId);
-    if (currentSession) {
-        currentSession.messages.push({ role: 'user', text: text });
-        saveChatsToLocal();
+    if (window.currentFolderId) {
+        let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+        let folder = folders.find(f => f.id === window.currentFolderId);
+        if (folder) {
+            folder.messages = folder.messages || [];
+            folder.messages.push({ role: 'user', text: text });
+            localStorage.setItem('nova_folders', JSON.stringify(folders));
+            if (window.saveChatsToCloud) window.saveChatsToCloud();
+        }
+    } else {
+        const currentSession = chatSessions.find(s => s.id === currentSessionId);
+        if (currentSession) {
+            currentSession.messages.push({ role: 'user', text: text });
+            saveChatsToLocal();
+        }
     }
 
     renderUserMessage(text);
@@ -443,10 +456,22 @@ window.submitPrompt = async function (text) {
     try {
         const iaResponse = await fakeAIModelResponse(text, currentFeatureMode);
 
-        // Guardar mensaje de la IA en la Sesión Local
-        if (currentSession) {
-            currentSession.messages.push({ role: 'ai', text: iaResponse });
-            saveChatsToLocal();
+        // Guardar mensaje de la IA
+        if (window.currentFolderId) {
+            let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+            let folder = folders.find(f => f.id === window.currentFolderId);
+            if (folder) {
+                folder.messages = folder.messages || [];
+                folder.messages.push({ role: 'ai', text: iaResponse });
+                localStorage.setItem('nova_folders', JSON.stringify(folders));
+                if (window.saveChatsToCloud) window.saveChatsToCloud();
+            }
+        } else {
+            const currentSession = chatSessions.find(s => s.id === currentSessionId);
+            if (currentSession) {
+                currentSession.messages.push({ role: 'ai', text: iaResponse });
+                saveChatsToLocal();
+            }
         }
 
         ui.loadingIndicator.classList.add('hidden');
@@ -690,6 +715,7 @@ window.renderFoldersGrid = function() {
     folders.forEach(folder => {
         const folderDiv = document.createElement('div');
         folderDiv.className = "flex flex-col p-6 min-h-[220px] bg-white dark:bg-nova-800 border border-gray-200 dark:border-white/10 rounded-3xl hover:border-brand-500 dark:hover:border-brand-400 transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer group relative overflow-hidden";
+        folderDiv.onclick = () => window.enterFolder(folder.id);
         
         folderDiv.innerHTML = `
             <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-500/10 to-purple-500/10 rounded-bl-full -z-0"></div>
@@ -713,3 +739,84 @@ document.addEventListener('DOMContentLoaded', () => {
         window.renderFoldersGrid();
     }
 });
+
+window.currentFolderId = null;
+
+window.enterFolder = function(folderId) {
+    const folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    
+    window.currentFolderId = folderId;
+    
+    // Ocultar pantalla de carpetas
+    document.getElementById('folders-screen').classList.add('hidden');
+    document.getElementById('folders-screen').classList.remove('opacity-100');
+    
+    // Ocultar sidebar normal para mayor inmersión
+    document.getElementById('sidebar').classList.add('hidden');
+    document.querySelector('main').classList.remove('hidden');
+    
+    // Cambiar headers
+    document.getElementById('main-header-title').classList.add('hidden');
+    document.getElementById('header-toggle-sidebar').classList.add('hidden');
+    document.getElementById('folder-header-title').classList.remove('hidden');
+    document.getElementById('folder-header-title').classList.add('flex');
+    document.getElementById('current-folder-name').textContent = folder.name;
+    
+    // Cargar historial aislado
+    ui.chatThread.innerHTML = '';
+    
+    if (!folder.messages || folder.messages.length === 0) {
+        ui.centralContent.style.display = 'flex';
+        ui.chatThread.classList.add('hidden');
+        isFirstMessage = true;
+    } else {
+        ui.centralContent.style.display = 'none';
+        ui.chatThread.classList.remove('hidden');
+        isFirstMessage = false;
+        
+        folder.messages.forEach(msg => {
+            if (msg.role === 'user') renderUserMessage(msg.text);
+            else renderAIMessage(msg.text);
+        });
+        scrollBottom();
+    }
+    
+    if (window.Prism) Prism.highlightAll();
+};
+
+window.exitFolder = function() {
+    window.currentFolderId = null;
+    
+    // Restaurar UI normal
+    document.getElementById('sidebar').classList.remove('hidden');
+    document.getElementById('main-header-title').classList.remove('hidden');
+    document.getElementById('folder-header-title').classList.add('hidden');
+    document.getElementById('folder-header-title').classList.remove('flex');
+    if (window.innerWidth > 768) {
+        document.getElementById('header-toggle-sidebar').classList.remove('hidden');
+    }
+    
+    // Mostrar pantalla de carpetas
+    window.toggleFoldersView();
+    // toggleFoldersView() is supposed to toggle it. Wait, if it's already hidden, toggleFoldersView will show it.
+    // Let's just manually show the grid.
+    const foldersScreen = document.getElementById('folders-screen');
+    const mainView = document.querySelector('main');
+    
+    foldersScreen.classList.remove('hidden');
+    document.getElementById('sidebar').classList.add('hidden');
+    mainView.classList.add('hidden');
+    
+    setTimeout(() => {
+        foldersScreen.classList.remove('opacity-0', 'pointer-events-none');
+        foldersScreen.classList.add('opacity-100');
+    }, 50);
+    
+    // Limpiar el chat actual por seguridad
+    ui.chatThread.innerHTML = '';
+    ui.centralContent.style.display = 'flex';
+    ui.chatThread.classList.add('hidden');
+    isFirstMessage = true;
+};

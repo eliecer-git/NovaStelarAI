@@ -230,10 +230,18 @@
                     class="hidden p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition flex items-center justify-center text-gray-600 dark:text-gray-300">
                     <span class="material-symbols-rounded text-2xl">menu</span>
                 </button>
-                <div
-                    class="text-[1.2rem] font-medium tracking-tight dark:text-white text-gray-800 flex items-center gap-2">
-                    NovaStelar <span
-                        class="text-[10px] bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded-full font-semibold border border-brand-500/20">Advanced</span>
+                <div id="main-header-title" class="text-[1.2rem] font-medium tracking-tight dark:text-white text-gray-800 flex items-center gap-2">
+                    NovaStelar <span class="text-[10px] bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded-full font-semibold border border-brand-500/20">Advanced</span>
+                </div>
+                <!-- Folder Header (Hidden) -->
+                <div id="folder-header-title" class="hidden items-center gap-4">
+                    <button onclick="window.exitFolder()" class="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-xl transition-all shadow-sm">
+                        <span class="material-symbols-rounded text-[18px]">arrow_back</span> Salir de la Carpeta
+                    </button>
+                    <div class="flex items-center gap-2 px-3 py-1 bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-xl">
+                        <span class="material-symbols-rounded text-brand-500 text-lg">folder_open</span>
+                        <span id="current-folder-name" class="font-bold text-brand-700 dark:text-brand-300 text-sm">Carpeta</span>
+                    </div>
                 </div>
             </div>
             <div class="relative">
