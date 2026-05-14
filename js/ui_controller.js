@@ -565,3 +565,44 @@ async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
         return `⚠️ **Error de Conexión con el Cerebro Principal.**\n\nNo he podido conectarme a mi servidor de inteligencia artificial. \n\n*Detalle del fallo: ${error.message}*`;
     }
 }
+
+// --- FASE 1: NAVEGACIÓN DE CARPETAS (Solo Visual) --- //
+window.toggleFoldersView = function() {
+    const chatStream = document.getElementById('chat-stream');
+    const foldersStream = document.getElementById('folders-stream');
+    const btnFolders = document.getElementById('btn-folders-view');
+    
+    if (foldersStream.classList.contains('hidden')) {
+        // Mostrar Carpetas
+        chatStream.classList.add('hidden');
+        foldersStream.classList.remove('hidden');
+        foldersStream.classList.add('flex');
+        btnFolders.classList.add('bg-brand-500', 'text-white');
+        btnFolders.classList.remove('bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+    } else {
+        // Volver al Chat
+        foldersStream.classList.add('hidden');
+        foldersStream.classList.remove('flex');
+        chatStream.classList.remove('hidden');
+        btnFolders.classList.remove('bg-brand-500', 'text-white');
+        btnFolders.classList.add('bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+    }
+};
+
+window.openCreateFolderModal = function() {
+    const modal = document.getElementById('create-folder-modal');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('div').classList.remove('scale-95');
+    }, 10);
+};
+
+window.closeCreateFolderModal = function() {
+    const modal = document.getElementById('create-folder-modal');
+    modal.classList.remove('opacity-100');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
