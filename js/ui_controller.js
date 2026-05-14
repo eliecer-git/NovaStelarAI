@@ -569,12 +569,14 @@ async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
 // --- FASE 1: NAVEGACIÓN DE CARPETAS (Solo Visual) --- //
 window.toggleFoldersView = function() {
     const foldersScreen = document.getElementById('folders-screen');
-    const appContainer = document.getElementById('app-container'); // The main view with sidebar and chat
+    const sidebar = document.getElementById('sidebar');
+    const mainView = document.querySelector('main');
     
     if (foldersScreen.classList.contains('hidden')) {
         // Mostrar Carpetas (Pantalla Completa)
         foldersScreen.classList.remove('hidden');
-        appContainer.classList.add('hidden');
+        sidebar.classList.add('hidden');
+        mainView.classList.add('hidden');
         
         setTimeout(() => {
             foldersScreen.classList.remove('opacity-0', 'pointer-events-none');
@@ -587,7 +589,8 @@ window.toggleFoldersView = function() {
         
         setTimeout(() => {
             foldersScreen.classList.add('hidden');
-            appContainer.classList.remove('hidden');
+            sidebar.classList.remove('hidden');
+            mainView.classList.remove('hidden');
         }, 300);
     }
 };
