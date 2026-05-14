@@ -612,3 +612,83 @@ window.closeCreateFolderModal = function() {
         modal.classList.add('hidden');
     }, 300);
 };
+
+// --- FASE 2: LÓGICA DE CARPETAS --- //
+
+window.createNewFolder = async function() {
+    const inputName = document.getElementById('input-folder-name');
+    const folderName = inputName.value.trim();
+    
+    if (!folderName) {
+        window.showToast("El nombre de la carpeta no puede estar vacío.", "warning");
+        return;
+    }
+    
+    // Obtener carpetas actuales
+    let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    
+    // Crear nueva carpeta
+    const newFolder = {
+        id: 'folder_' + Date.now(),
+        name: folderName,
+        createdAt: new Date().toISOString()
+    };
+    
+    folders.push(newFolder);
+    localStorage.setItem('nova_folders', JSON.stringify(folders));
+    
+    inputName.value = ''; // Limpiar input
+    window.closeCreateFolderModal();
+    window.showToast(`Carpeta "${folderName}" creada.`, "create_new_folder");
+    
+    window.renderFoldersGrid();
+    
+    // Guardar en la nube (Fase 2 extendida)
+    if (window.saveChatsToCloud) {
+        window.saveChatsToCloud();
+    }
+};
+
+window.renderFoldersGrid = function() {
+    const grid = document.getElementById('folders-grid');
+    if (!grid) return;
+    
+    // Limpiar grid dejando solo el botón de crear
+    grid.innerHTML = `
+        <!-- Caja Grande para Crear Carpeta -->
+        <button onclick="window.openCreateFolderModal()" class="flex flex-col items-center justify-center gap-4 min-h-[220px] bg-white/50 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl hover:border-brand-500 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all duration-300 group shadow-sm hover:shadow-xl">
+            <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center group-hover:bg-brand-500 group-hover:text-white transition-colors text-gray-400 dark:text-gray-500">
+                <span class="material-symbols-rounded text-3xl">add</span>
+            </div>
+            <span class="font-semibold text-gray-600 dark:text-gray-300 group-hover:text-brand-600 dark:group-hover:text-brand-400 text-lg">Nueva Carpeta</span>
+        </button>
+    `;
+    
+    let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    
+    folders.forEach(folder => {
+        const folderDiv = document.createElement('div');
+        folderDiv.className = "flex flex-col p-6 min-h-[220px] bg-white dark:bg-nova-800 border border-gray-200 dark:border-white/10 rounded-3xl hover:border-brand-500 dark:hover:border-brand-400 transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer group relative overflow-hidden";
+        
+        folderDiv.innerHTML = `
+            <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-500/10 to-purple-500/10 rounded-bl-full -z-0"></div>
+            <div class="flex justify-between items-start mb-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm">
+                    <span class="material-symbols-rounded text-3xl">folder</span>
+                </div>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2 relative z-10 line-clamp-2">${folder.name}</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mt-auto relative z-10 flex items-center gap-1">
+                <span class="material-symbols-rounded text-[14px]">chat_bubble</span> Entorno Aislado
+            </p>
+        `;
+        
+        grid.appendChild(folderDiv);
+    });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.renderFoldersGrid) {
+        window.renderFoldersGrid();
+    }
+});

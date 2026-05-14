@@ -150,6 +150,11 @@ window.syncChatsFromCloud = async function(uid) {
                     const avatar = document.getElementById('user-avatar-icon');
                     if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
                 }
+                if (doc.fields.folders && doc.fields.folders.stringValue) {
+                    const folders = JSON.parse(doc.fields.folders.stringValue);
+                    localStorage.setItem('nova_folders', JSON.stringify(folders));
+                    if (window.renderFoldersGrid) window.renderFoldersGrid();
+                }
                 console.log("✅ Chats descargados de la nube (REST API)");
             }
         } else if (response.status === 404) {
@@ -190,6 +195,11 @@ window.saveChatsToCloud = async function() {
         
         if (userName) {
             fields.userName = { stringValue: userName };
+        }
+        
+        const foldersRaw = localStorage.getItem('nova_folders');
+        if (foldersRaw) {
+            fields.folders = { stringValue: foldersRaw };
         }
         
         const response = await fetch(url, {
