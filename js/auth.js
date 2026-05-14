@@ -340,6 +340,13 @@ auth.onAuthStateChanged(async (user) => {
             if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
         }
         
+        // Actualizar el menú de cuenta
+        const emailDisplay = document.getElementById('user-email-display');
+        if (emailDisplay && user.email) {
+            emailDisplay.textContent = user.email;
+            emailDisplay.title = user.email;
+        }
+        
         // 3. Entrar a la app
         window.enterApp('social'); 
     } else {

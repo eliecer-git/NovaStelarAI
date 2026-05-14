@@ -595,6 +595,27 @@ window.toggleFoldersView = function() {
     }
 };
 
+window.toggleUserDropdown = function() {
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown.classList.contains('opacity-0')) {
+        dropdown.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+        dropdown.classList.add('opacity-100', 'scale-100');
+    } else {
+        dropdown.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+        dropdown.classList.remove('opacity-100', 'scale-100');
+    }
+};
+
+// Cerrar dropdown al hacer click afuera
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('user-dropdown');
+    const avatar = document.getElementById('user-avatar-icon');
+    if (dropdown && avatar && !dropdown.contains(e.target) && !avatar.contains(e.target)) {
+        dropdown.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+        dropdown.classList.remove('opacity-100', 'scale-100');
+    }
+});
+
 window.openCreateFolderModal = function() {
     const modal = document.getElementById('create-folder-modal');
     modal.classList.remove('hidden');

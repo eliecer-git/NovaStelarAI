@@ -236,9 +236,19 @@
                         class="text-[10px] bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded-full font-semibold border border-brand-500/20">Advanced</span>
                 </div>
             </div>
-            <div id="user-avatar-icon"
-                class="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white text-sm font-medium shadow-sm">
-                V
+            <div class="relative">
+                <button id="user-avatar-icon" onclick="window.toggleUserDropdown()"
+                    class="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white text-sm font-medium shadow-sm hover:ring-2 hover:ring-brand-500/50 transition-all focus:outline-none">
+                    V
+                </button>
+
+                <!-- Menú de Usuario (Oculto por defecto) -->
+                <div id="user-dropdown" class="absolute right-0 top-12 w-56 bg-white dark:bg-nova-800 rounded-2xl shadow-xl border border-gray-100 dark:border-white/10 opacity-0 pointer-events-none transform scale-95 transition-all duration-200 z-50 origin-top-right">
+                    <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                        <p class="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Cuenta Activa</p>
+                        <p id="user-email-display" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate" title="Cargando...">Cargando...</p>
+                    </div>
+                </div>
             </div>
         </header>
 
