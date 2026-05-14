@@ -568,24 +568,27 @@ async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
 
 // --- FASE 1: NAVEGACIÓN DE CARPETAS (Solo Visual) --- //
 window.toggleFoldersView = function() {
-    const chatStream = document.getElementById('chat-stream');
-    const foldersStream = document.getElementById('folders-stream');
-    const btnFolders = document.getElementById('btn-folders-view');
+    const foldersScreen = document.getElementById('folders-screen');
+    const appContainer = document.getElementById('app-container'); // The main view with sidebar and chat
     
-    if (foldersStream.classList.contains('hidden')) {
-        // Mostrar Carpetas
-        chatStream.classList.add('hidden');
-        foldersStream.classList.remove('hidden');
-        foldersStream.classList.add('flex');
-        btnFolders.classList.add('bg-brand-500', 'text-white');
-        btnFolders.classList.remove('bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+    if (foldersScreen.classList.contains('hidden')) {
+        // Mostrar Carpetas (Pantalla Completa)
+        foldersScreen.classList.remove('hidden');
+        appContainer.classList.add('hidden');
+        
+        setTimeout(() => {
+            foldersScreen.classList.remove('opacity-0', 'pointer-events-none');
+            foldersScreen.classList.add('opacity-100');
+        }, 50);
     } else {
-        // Volver al Chat
-        foldersStream.classList.add('hidden');
-        foldersStream.classList.remove('flex');
-        chatStream.classList.remove('hidden');
-        btnFolders.classList.remove('bg-brand-500', 'text-white');
-        btnFolders.classList.add('bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+        // Volver al Inicio
+        foldersScreen.classList.remove('opacity-100');
+        foldersScreen.classList.add('opacity-0', 'pointer-events-none');
+        
+        setTimeout(() => {
+            foldersScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+        }, 300);
     }
 };
 

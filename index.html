@@ -134,6 +134,51 @@
         </div>
     </div>
 
+    <!-- Folders Full Screen View (Hidden by default) -->
+    <div id="folders-screen" class="fixed inset-0 z-[100] bg-gray-50 dark:bg-nova-900 hidden flex-col overflow-y-auto custom-scrollbar transition-opacity duration-300 opacity-0 pointer-events-none">
+        
+        <!-- Navbar Carpetas -->
+        <header class="h-16 flex items-center justify-between px-6 shrink-0 w-full border-b border-gray-200 dark:border-white/10 bg-white/50 dark:bg-nova-900/50 backdrop-blur-md sticky top-0 z-20">
+            <button onclick="window.toggleFoldersView()" class="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition font-medium">
+                <span class="material-symbols-rounded">arrow_back</span> Regresar a Inicio
+            </button>
+            <div class="text-lg font-bold text-gray-800 dark:text-white">Multiverso</div>
+        </header>
+
+        <div class="max-w-6xl w-full mx-auto px-6 py-12 flex-1">
+            <div class="mb-10 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold dark:text-white text-gray-800 mb-4 flex items-center justify-center gap-4">
+                    <span class="material-symbols-rounded text-5xl text-brand-500">folder_managed</span> Entornos de Trabajo
+                </h1>
+                <p class="text-gray-500 dark:text-gray-400 text-lg">Organiza tus proyectos y conversaciones en universos aislados.</p>
+            </div>
+            
+            <div id="folders-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Caja Grande para Crear Carpeta -->
+                <button onclick="window.openCreateFolderModal()" class="flex flex-col items-center justify-center gap-4 min-h-[220px] bg-white/50 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl hover:border-brand-500 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all duration-300 group shadow-sm hover:shadow-xl">
+                    <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center group-hover:bg-brand-500 group-hover:text-white transition-colors text-gray-400 dark:text-gray-500">
+                        <span class="material-symbols-rounded text-3xl">add</span>
+                    </div>
+                    <span class="font-semibold text-gray-600 dark:text-gray-300 group-hover:text-brand-600 dark:group-hover:text-brand-400 text-lg">Nueva Carpeta</span>
+                </button>
+
+                <!-- Las carpetas se inyectarán aquí dinámicamente. Ejemplo visual: -->
+                <!-- 
+                <div class="flex flex-col p-6 min-h-[220px] bg-white dark:bg-nova-800 border border-gray-200 dark:border-white/10 rounded-3xl hover:border-brand-500 transition-all duration-300 shadow-md hover:shadow-xl cursor-pointer group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-3xl">folder</span>
+                        </div>
+                        <button class="text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100"><span class="material-symbols-rounded">delete</span></button>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2">Recetas de Cocina</h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mt-auto">0 chats creados</p>
+                </div>
+                -->
+            </div>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <aside id="sidebar"
         class="w-[280px] bg-white dark:bg-nova-800 h-full flex flex-col shrink-0 border-r border-gray-200 dark:border-white/5 relative z-20 transition-all duration-300">
@@ -197,26 +242,7 @@
             </div>
         </header>
 
-        <!-- Folders Area (Hidden by default) -->
-        <div id="folders-stream" class="flex-1 overflow-y-auto hidden flex-col custom-scrollbar bg-gray-50 dark:bg-nova-900 w-full z-10 absolute inset-0 pt-16 pb-6 px-4 md:px-12">
-            <div class="max-w-5xl w-full mx-auto mt-6">
-                <div class="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 class="text-3xl font-bold dark:text-white text-gray-800 flex items-center gap-3">
-                            <span class="material-symbols-rounded text-4xl text-brand-500">folder_open</span> Tus Carpetas
-                        </h2>
-                        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Organiza tus proyectos y conversaciones en universos aislados.</p>
-                    </div>
-                    <button onclick="window.openCreateFolderModal()" class="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white px-5 py-3 rounded-xl font-medium shadow-lg shadow-brand-500/20 transition-all hover:scale-105">
-                        <span class="material-symbols-rounded">create_new_folder</span> Crear Carpeta
-                    </button>
-                </div>
-                
-                <div id="folders-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <!-- Las carpetas se inyectarán aquí dinámicamente -->
-                </div>
-            </div>
-        </div>
+
 
         <!-- Chat Area -->
         <div class="flex-1 overflow-y-auto flex flex-col items-center custom-scrollbar pb-[180px]" id="chat-stream">
