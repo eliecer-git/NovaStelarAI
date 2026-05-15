@@ -252,6 +252,7 @@ window.executeLogout = function() {
     localStorage.removeItem('novastelar_chats');
     localStorage.removeItem('nova_ai_name');
     localStorage.removeItem('nova_user_name');
+    localStorage.removeItem('nova_user_logged_in');
     
     auth.signOut().then(() => {
         setTimeout(() => {
@@ -347,9 +348,26 @@ auth.onAuthStateChanged(async (user) => {
             emailDisplay.title = user.email;
         }
         
+        localStorage.setItem('nova_user_logged_in', 'true');
+        
+        // Ocultar loader si existe
+        const loader = document.getElementById('global-loading-screen');
+        if (loader && loader.style.display !== 'none') {
+            loader.classList.add('opacity-0');
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                document.documentElement.classList.remove('fast-loading');
+            }, 500);
+        }
+        
         // 3. Entrar a la app
         window.enterApp('social'); 
     } else {
+        localStorage.setItem('nova_user_logged_in', 'false');
+        document.documentElement.classList.remove('fast-loading');
+        const loader = document.getElementById('global-loading-screen');
+        if (loader) loader.classList.add('hidden');
+        
         console.log("NovaStelar: Esperando conexión...");
     }
 });
