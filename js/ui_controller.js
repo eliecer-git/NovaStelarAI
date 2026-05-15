@@ -819,12 +819,16 @@ window.enterFolder = function(folderId) {
     document.getElementById('sidebar').classList.remove('hidden');
     document.querySelector('main').classList.remove('hidden');
     
-    // Cambiar headers
+    // Cambiar headers y sidebar
     document.getElementById('main-header-title').classList.add('hidden');
     document.getElementById('header-toggle-sidebar').classList.add('hidden');
     document.getElementById('folder-header-title').classList.remove('hidden');
     document.getElementById('folder-header-title').classList.add('flex');
     document.getElementById('current-folder-name').textContent = folder.name;
+    
+    // UI Sidebar específica
+    document.getElementById('btn-folders-view').classList.add('hidden');
+    document.getElementById('sidebar-history-label').textContent = `Chats en ${folder.name}`;
     
     // Configurar estado limpio
     ui.chatThread.innerHTML = '';
@@ -849,6 +853,10 @@ window.exitFolder = function() {
     if (window.innerWidth > 768) {
         document.getElementById('header-toggle-sidebar').classList.remove('hidden');
     }
+
+    // Restaurar Sidebar
+    document.getElementById('btn-folders-view').classList.remove('hidden');
+    document.getElementById('sidebar-history-label').textContent = 'Reciente';
     
     // Refrescar el historial lateral con LOS CHATS GLOBALES
     window.renderHistorySidebar();
