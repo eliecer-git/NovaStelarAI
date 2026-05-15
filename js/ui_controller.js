@@ -784,6 +784,22 @@ window.renderFoldersGrid = function() {
                 <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm">
                     <span class="material-symbols-rounded text-3xl">folder</span>
                 </div>
+                <!-- Menú de Opciones de Carpeta -->
+                <div class="relative folder-options-menu">
+                    <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors" onclick="window.toggleFolderOptions(event, '${folder.id}')">
+                        <span class="material-symbols-rounded text-xl">more_vert</span>
+                    </button>
+                    <div id="folder-dropdown-${folder.id}" class="absolute right-0 top-10 w-44 bg-white dark:bg-nova-800 rounded-xl shadow-xl border border-gray-100 dark:border-white/10 opacity-0 pointer-events-none transform scale-95 transition-all duration-200 z-50">
+                        <div class="p-1.5 flex flex-col gap-1">
+                            <button onclick="window.renameFolder(event, '${folder.id}')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-[18px]">edit</span> Renombrar
+                            </button>
+                            <button onclick="window.deleteFolder(event, '${folder.id}')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-[18px]">delete</span> Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2 relative z-10 line-clamp-2">${folder.name}</h3>
             <p class="text-gray-500 dark:text-gray-400 text-sm mt-auto relative z-10 flex items-center gap-1">
@@ -800,6 +816,66 @@ document.addEventListener('DOMContentLoaded', () => {
         window.renderFoldersGrid();
     }
 });
+
+// Cerrar dropdowns de carpetas al clickear fuera
+document.addEventListener('click', (e) => {
+    document.querySelectorAll('[id^="folder-dropdown-"]').forEach(dropdown => {
+        const btn = dropdown.previousElementSibling; // el botón que lo abre
+        if (!dropdown.contains(e.target) && (!btn || !btn.contains(e.target))) {
+            dropdown.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+        }
+    });
+});
+
+window.toggleFolderOptions = function(event, folderId) {
+    event.stopPropagation();
+    
+    // Cerrar otros dropdowns
+    document.querySelectorAll('[id^="folder-dropdown-"]').forEach(d => {
+        if (d.id !== `folder-dropdown-${folderId}`) {
+            d.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+        }
+    });
+
+    const dropdown = document.getElementById(`folder-dropdown-${folderId}`);
+    if (dropdown) {
+        dropdown.classList.toggle('opacity-0');
+        dropdown.classList.toggle('pointer-events-none');
+        dropdown.classList.toggle('scale-95');
+    }
+};
+
+window.renameFolder = function(event, folderId) {
+    event.stopPropagation();
+    window.toggleFolderOptions(event, folderId); // Close menu
+    
+    let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    let folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    
+    const newName = prompt("Nuevo nombre de la carpeta:", folder.name);
+    if (newName && newName.trim() !== '') {
+        folder.name = newName.trim();
+        localStorage.setItem('nova_folders', JSON.stringify(folders));
+        if (window.saveChatsToCloud) window.saveChatsToCloud();
+        window.renderFoldersGrid();
+        window.showToast("Carpeta renombrada exitosamente.", "edit");
+    }
+};
+
+window.deleteFolder = function(event, folderId) {
+    event.stopPropagation();
+    window.toggleFolderOptions(event, folderId); // Close menu
+    
+    if (confirm("¿Estás seguro de que deseas eliminar este entorno? Se borrarán todos los historiales y notas internamente.")) {
+        let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+        folders = folders.filter(f => f.id !== folderId);
+        localStorage.setItem('nova_folders', JSON.stringify(folders));
+        if (window.saveChatsToCloud) window.saveChatsToCloud();
+        window.renderFoldersGrid();
+        window.showToast("Entorno eliminado del sistema.", "delete");
+    }
+};
 
 window.currentFolderId = null;
 
