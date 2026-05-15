@@ -156,11 +156,19 @@ let currentSessionId = null;
 
 // Re-pintar historial anterior
 window.renderHistorySidebar = function() {
-    // ACTUALIZACIÓN DE SEGURIDAD: Obtener siempre lo último de localStorage
-    chatSessions = JSON.parse(localStorage.getItem('novastelar_chats')) || [];
+    let sessionsToRender = [];
+    
+    if (window.currentFolderId) {
+        const folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+        const folder = folders.find(f => f.id === window.currentFolderId);
+        if (folder && folder.chatSessions) sessionsToRender = folder.chatSessions;
+    } else {
+        chatSessions = JSON.parse(localStorage.getItem('novastelar_chats')) || [];
+        sessionsToRender = chatSessions;
+    }
     
     ui.historyList.innerHTML = '';
-    chatSessions.forEach(session => {
+    sessionsToRender.forEach(session => {
         const li = document.createElement('li');
         li.className = 'relative group history-item';
         li.innerHTML = `
@@ -198,12 +206,28 @@ window.toggleChatOptions = function(event, id) {
 };
 
 window.renameChat = function(id) {
-    const session = chatSessions.find(s => s.id === id);
+    let folders = [];
+    let session = null;
+    let folder = null;
+
+    if (window.currentFolderId) {
+        folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+        folder = folders.find(f => f.id === window.currentFolderId);
+        if (folder && folder.chatSessions) session = folder.chatSessions.find(s => s.id === id);
+    } else {
+        session = chatSessions.find(s => s.id === id);
+    }
+
     if (!session) return;
     const newName = prompt("Nuevo nombre para el chat:", session.summary);
     if (newName && newName.trim()) {
         session.summary = newName.trim();
-        saveChatsToLocal();
+        if (window.currentFolderId) {
+            localStorage.setItem('nova_folders', JSON.stringify(folders));
+            if (window.saveChatsToCloud) window.saveChatsToCloud();
+        } else {
+            saveChatsToLocal();
+        }
         window.renderHistorySidebar();
         window.showToast('Chat renombrado.', 'edit');
     }
@@ -211,8 +235,20 @@ window.renameChat = function(id) {
 
 window.deleteChat = function(id) {
     if (confirm("¿Estás seguro de que deseas eliminar este chat?")) {
-        chatSessions = chatSessions.filter(s => s.id !== id);
-        saveChatsToLocal();
+        let folders = [];
+        if (window.currentFolderId) {
+            folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+            let folder = folders.find(f => f.id === window.currentFolderId);
+            if (folder && folder.chatSessions) {
+                folder.chatSessions = folder.chatSessions.filter(s => s.id !== id);
+                localStorage.setItem('nova_folders', JSON.stringify(folders));
+                if (window.saveChatsToCloud) window.saveChatsToCloud();
+            }
+        } else {
+            chatSessions = chatSessions.filter(s => s.id !== id);
+            saveChatsToLocal();
+        }
+        
         window.renderHistorySidebar();
         window.showToast('Chat eliminado.', 'delete');
         
@@ -220,6 +256,7 @@ window.deleteChat = function(id) {
             ui.chatThread.innerHTML = '';
             ui.centralContent.style.display = 'flex';
             currentSessionId = null;
+            isFirstMessage = true;
         }
     }
 };
@@ -246,7 +283,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.loadChat = function (id) {
     if (isProcessing) return;
-    const session = chatSessions.find(s => s.id === id);
+    
+    let session = null;
+    if (window.currentFolderId) {
+        let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+        let folder = folders.find(f => f.id === window.currentFolderId);
+        if (folder && folder.chatSessions) session = folder.chatSessions.find(s => s.id === id);
+    } else {
+        session = chatSessions.find(s => s.id === id);
+    }
+    
     if (!session) return;
 
     currentSessionId = id;
@@ -401,43 +447,53 @@ window.submitPrompt = async function (text) {
     ui.btnSend.innerHTML = '<span class="material-symbols-rounded text-[22px] animate-spin">refresh</span>';
 
     // Zero State y Creación de Sesión (Solo en el primer mensaje)
-    if (isFirstMessage || (!window.currentFolderId && currentSessionId === null)) {
+    if (isFirstMessage || currentSessionId === null) {
         ui.centralContent.style.display = 'none';
         ui.chatThread.classList.remove('hidden');
         isFirstMessage = false;
 
-        if (!window.currentFolderId) {
-            // Crear nueva sesión de Chat (Solo si no estamos en una carpeta)
-            currentSessionId = Date.now(); // ID único
-            const summary = text.length > 25 ? text.substring(0, 25) + '...' : text;
+        currentSessionId = Date.now(); // ID único
+        const summary = text.length > 25 ? text.substring(0, 25) + '...' : text;
+        const newSession = {
+            id: currentSessionId,
+            summary: summary,
+            messages: []
+        };
 
-            // Guardarla en Memoria Local RAM
-            chatSessions.push({
-                id: currentSessionId,
-                summary: summary,
-                messages: []
-            });
-
-            // Crear el botón en el Frontend (Sidebar Historial)
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${currentSessionId})">
-                    <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${summary}
-                </button>
-            `;
-            ui.historyList.prepend(li);
+        if (window.currentFolderId) {
+            let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+            let folder = folders.find(f => f.id === window.currentFolderId);
+            if (folder) {
+                folder.chatSessions = folder.chatSessions || [];
+                folder.chatSessions.push(newSession);
+                localStorage.setItem('nova_folders', JSON.stringify(folders));
+                if (window.saveChatsToCloud) window.saveChatsToCloud();
+            }
+        } else {
+            chatSessions.push(newSession);
         }
+
+        // Crear el botón en el Frontend (Sidebar Historial)
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${currentSessionId})">
+                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${summary}
+            </button>
+        `;
+        ui.historyList.prepend(li);
     }
 
     // Obtener Sesión Actual y guardar el mensaje del Usuario
     if (window.currentFolderId) {
         let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
         let folder = folders.find(f => f.id === window.currentFolderId);
-        if (folder) {
-            folder.messages = folder.messages || [];
-            folder.messages.push({ role: 'user', text: text });
-            localStorage.setItem('nova_folders', JSON.stringify(folders));
-            if (window.saveChatsToCloud) window.saveChatsToCloud();
+        if (folder && folder.chatSessions) {
+            let session = folder.chatSessions.find(s => s.id === currentSessionId);
+            if (session) {
+                session.messages.push({ role: 'user', text: text });
+                localStorage.setItem('nova_folders', JSON.stringify(folders));
+                if (window.saveChatsToCloud) window.saveChatsToCloud();
+            }
         }
     } else {
         const currentSession = chatSessions.find(s => s.id === currentSessionId);
@@ -460,11 +516,13 @@ window.submitPrompt = async function (text) {
         if (window.currentFolderId) {
             let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
             let folder = folders.find(f => f.id === window.currentFolderId);
-            if (folder) {
-                folder.messages = folder.messages || [];
-                folder.messages.push({ role: 'ai', text: iaResponse });
-                localStorage.setItem('nova_folders', JSON.stringify(folders));
-                if (window.saveChatsToCloud) window.saveChatsToCloud();
+            if (folder && folder.chatSessions) {
+                let session = folder.chatSessions.find(s => s.id === currentSessionId);
+                if (session) {
+                    session.messages.push({ role: 'ai', text: iaResponse });
+                    localStorage.setItem('nova_folders', JSON.stringify(folders));
+                    if (window.saveChatsToCloud) window.saveChatsToCloud();
+                }
             }
         } else {
             const currentSession = chatSessions.find(s => s.id === currentSessionId);
@@ -717,6 +775,9 @@ window.renderFoldersGrid = function() {
         folderDiv.className = "flex flex-col p-6 min-h-[220px] bg-white dark:bg-nova-800 border border-gray-200 dark:border-white/10 rounded-3xl hover:border-brand-500 dark:hover:border-brand-400 transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer group relative overflow-hidden";
         folderDiv.onclick = () => window.enterFolder(folder.id);
         
+        const numChats = folder.chatSessions ? folder.chatSessions.length : 0;
+        const textChats = numChats === 1 ? '1 chat' : `${numChats} chats`;
+        
         folderDiv.innerHTML = `
             <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-500/10 to-purple-500/10 rounded-bl-full -z-0"></div>
             <div class="flex justify-between items-start mb-4 relative z-10">
@@ -726,7 +787,7 @@ window.renderFoldersGrid = function() {
             </div>
             <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2 relative z-10 line-clamp-2">${folder.name}</h3>
             <p class="text-gray-500 dark:text-gray-400 text-sm mt-auto relative z-10 flex items-center gap-1">
-                <span class="material-symbols-rounded text-[14px]">chat_bubble</span> Entorno Aislado
+                <span class="material-symbols-rounded text-[14px]">chat_bubble</span> ${textChats} en el entorno
             </p>
         `;
         
@@ -748,13 +809,14 @@ window.enterFolder = function(folderId) {
     if (!folder) return;
     
     window.currentFolderId = folderId;
+    currentSessionId = null;
     
     // Ocultar pantalla de carpetas
     document.getElementById('folders-screen').classList.add('hidden');
     document.getElementById('folders-screen').classList.remove('opacity-100');
     
-    // Ocultar sidebar normal para mayor inmersión
-    document.getElementById('sidebar').classList.add('hidden');
+    // Mostrar sidebar normal (para subchats)
+    document.getElementById('sidebar').classList.remove('hidden');
     document.querySelector('main').classList.remove('hidden');
     
     // Cambiar headers
@@ -764,33 +826,23 @@ window.enterFolder = function(folderId) {
     document.getElementById('folder-header-title').classList.add('flex');
     document.getElementById('current-folder-name').textContent = folder.name;
     
-    // Cargar historial aislado
+    // Configurar estado limpio
     ui.chatThread.innerHTML = '';
+    ui.centralContent.style.display = 'flex';
+    ui.chatThread.classList.add('hidden');
+    isFirstMessage = true;
     
-    if (!folder.messages || folder.messages.length === 0) {
-        ui.centralContent.style.display = 'flex';
-        ui.chatThread.classList.add('hidden');
-        isFirstMessage = true;
-    } else {
-        ui.centralContent.style.display = 'none';
-        ui.chatThread.classList.remove('hidden');
-        isFirstMessage = false;
-        
-        folder.messages.forEach(msg => {
-            if (msg.role === 'user') renderUserMessage(msg.text);
-            else renderAIMessage(msg.text);
-        });
-        scrollBottom();
-    }
+    // Renderizar historial lateral de LA CARPETA
+    window.renderHistorySidebar();
     
     if (window.Prism) Prism.highlightAll();
 };
 
 window.exitFolder = function() {
     window.currentFolderId = null;
+    currentSessionId = null;
     
     // Restaurar UI normal
-    document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('main-header-title').classList.remove('hidden');
     document.getElementById('folder-header-title').classList.add('hidden');
     document.getElementById('folder-header-title').classList.remove('flex');
@@ -798,10 +850,16 @@ window.exitFolder = function() {
         document.getElementById('header-toggle-sidebar').classList.remove('hidden');
     }
     
+    // Refrescar el historial lateral con LOS CHATS GLOBALES
+    window.renderHistorySidebar();
+    
+    // Limpiar el chat
+    ui.chatThread.innerHTML = '';
+    ui.centralContent.style.display = 'flex';
+    ui.chatThread.classList.add('hidden');
+    isFirstMessage = true;
+
     // Mostrar pantalla de carpetas
-    window.toggleFoldersView();
-    // toggleFoldersView() is supposed to toggle it. Wait, if it's already hidden, toggleFoldersView will show it.
-    // Let's just manually show the grid.
     const foldersScreen = document.getElementById('folders-screen');
     const mainView = document.querySelector('main');
     
@@ -813,10 +871,4 @@ window.exitFolder = function() {
         foldersScreen.classList.remove('opacity-0', 'pointer-events-none');
         foldersScreen.classList.add('opacity-100');
     }, 50);
-    
-    // Limpiar el chat actual por seguridad
-    ui.chatThread.innerHTML = '';
-    ui.centralContent.style.display = 'flex';
-    ui.chatThread.classList.add('hidden');
-    isFirstMessage = true;
 };
