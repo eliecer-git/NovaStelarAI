@@ -234,31 +234,35 @@ window.renameChat = function(id) {
 };
 
 window.deleteChat = function(id) {
-    if (confirm("¿Estás seguro de que deseas eliminar este chat?")) {
-        let folders = [];
-        if (window.currentFolderId) {
-            folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
-            let folder = folders.find(f => f.id === window.currentFolderId);
-            if (folder && folder.chatSessions) {
-                folder.chatSessions = folder.chatSessions.filter(s => s.id !== id);
-                localStorage.setItem('nova_folders', JSON.stringify(folders));
-                if (window.saveChatsToCloud) window.saveChatsToCloud();
+    window.showConfirmModal(
+        "Eliminar Chat", 
+        "¿Estás seguro de que deseas eliminar este chat? No podrás recuperarlo.", 
+        () => {
+            let folders = [];
+            if (window.currentFolderId) {
+                folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+                let folder = folders.find(f => f.id === window.currentFolderId);
+                if (folder && folder.chatSessions) {
+                    folder.chatSessions = folder.chatSessions.filter(s => s.id !== id);
+                    localStorage.setItem('nova_folders', JSON.stringify(folders));
+                    if (window.saveChatsToCloud) window.saveChatsToCloud();
+                }
+            } else {
+                chatSessions = chatSessions.filter(s => s.id !== id);
+                saveChatsToLocal();
             }
-        } else {
-            chatSessions = chatSessions.filter(s => s.id !== id);
-            saveChatsToLocal();
+            
+            window.renderHistorySidebar();
+            window.showToast('Chat eliminado.', 'delete');
+            
+            if (currentSessionId === id) {
+                ui.chatThread.innerHTML = '';
+                ui.centralContent.style.display = 'flex';
+                currentSessionId = null;
+                isFirstMessage = true;
+            }
         }
-        
-        window.renderHistorySidebar();
-        window.showToast('Chat eliminado.', 'delete');
-        
-        if (currentSessionId === id) {
-            ui.chatThread.innerHTML = '';
-            ui.centralContent.style.display = 'flex';
-            currentSessionId = null;
-            isFirstMessage = true;
-        }
-    }
+    );
 };
 
 // Cerrar dropdowns al hacer clic fuera
@@ -926,14 +930,48 @@ window.deleteFolder = function(event, folderId) {
     event.stopPropagation();
     window.toggleFolderOptions(event, folderId); // Close menu
     
-    if (confirm("¿Estás seguro de que deseas eliminar este entorno? Se borrarán todos los historiales y notas internamente.")) {
-        let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
-        folders = folders.filter(f => f.id !== folderId);
-        localStorage.setItem('nova_folders', JSON.stringify(folders));
-        if (window.saveChatsToCloud) window.saveChatsToCloud();
-        window.renderFoldersGrid();
-        window.showToast("Entorno eliminado del sistema.", "delete");
-    }
+    window.showConfirmModal(
+        "Eliminar Entorno",
+        "¿Estás seguro de que deseas eliminar este entorno? Se borrarán todos los historiales y notas internamente.",
+        () => {
+            let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+            folders = folders.filter(f => f.id !== folderId);
+            localStorage.setItem('nova_folders', JSON.stringify(folders));
+            if (window.saveChatsToCloud) window.saveChatsToCloud();
+            window.renderFoldersGrid();
+            window.showToast("Entorno eliminado del sistema.", "delete");
+        }
+    );
+};
+
+// Modal de Confirmación Global
+window.showConfirmModal = function(title, message, onConfirm) {
+    const modal = document.getElementById('confirm-modal');
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-message').textContent = message;
+    
+    const confirmBtn = document.getElementById('confirm-modal-btn');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    newConfirmBtn.onclick = () => {
+        window.closeConfirmModal();
+        if (onConfirm) onConfirm();
+    };
+    
+    modal.classList.remove('hidden');
+    void modal.offsetWidth; // Forzar reflow
+    modal.classList.add('opacity-100');
+    modal.querySelector('div').classList.remove('scale-95');
+};
+
+window.closeConfirmModal = function() {
+    const modal = document.getElementById('confirm-modal');
+    modal.classList.remove('opacity-100');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
 };
 
 window.currentFolderId = null;
