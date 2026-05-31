@@ -769,11 +769,24 @@ window.renderFoldersGrid = function() {
     `;
     
     let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    
+    // Filtro por búsqueda
     const searchInput = document.getElementById('input-search-folder');
     if (searchInput && searchInput.value.trim() !== '') {
         const term = searchInput.value.trim().toLowerCase();
         folders = folders.filter(f => f.name.toLowerCase().includes(term));
     }
+    
+    // Filtro por favoritos
+    if (window.isFavoritesFilterActive) {
+        folders = folders.filter(f => f.isFavorite);
+    }
+    
+    // Ordenar: Favoritos primero
+    folders.sort((a, b) => {
+        if (a.isFavorite === b.isFavorite) return 0;
+        return a.isFavorite ? -1 : 1;
+    });
     
     folders.forEach(folder => {
         const folderDiv = document.createElement('div');
@@ -786,16 +799,22 @@ window.renderFoldersGrid = function() {
         folderDiv.innerHTML = `
             <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-500/10 to-purple-500/10 rounded-bl-full -z-0"></div>
             <div class="flex justify-between items-start mb-4 relative z-10">
-                <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm">
-                    <span class="material-symbols-rounded text-3xl">folder</span>
+                <div class="flex gap-2 items-start">
+                    <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm">
+                        <span class="material-symbols-rounded text-3xl">folder</span>
+                    </div>
+                    ${folder.isFavorite ? '<span class="material-symbols-rounded text-yellow-500 text-2xl mt-1 fill-current" title="Favorito">star</span>' : ''}
                 </div>
                 <!-- Menú de Opciones de Carpeta -->
                 <div class="relative folder-options-menu">
                     <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors" onclick="window.toggleFolderOptions(event, '${folder.id}')">
                         <span class="material-symbols-rounded text-xl">more_vert</span>
                     </button>
-                    <div id="folder-dropdown-${folder.id}" class="absolute right-0 top-10 w-44 bg-white dark:bg-nova-800 rounded-xl shadow-xl border border-gray-100 dark:border-white/10 opacity-0 pointer-events-none transform scale-95 transition-all duration-200 z-50">
+                    <div id="folder-dropdown-${folder.id}" class="absolute right-0 top-10 w-48 bg-white dark:bg-nova-800 rounded-xl shadow-xl border border-gray-100 dark:border-white/10 opacity-0 pointer-events-none transform scale-95 transition-all duration-200 z-50">
                         <div class="p-1.5 flex flex-col gap-1">
+                            <button onclick="window.toggleFavoriteFolder(event, '${folder.id}')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-[18px] ${folder.isFavorite ? 'text-yellow-500 fill-current' : ''}">star</span> ${folder.isFavorite ? 'Quitar Favorito' : 'Fijar Favorito'}
+                            </button>
                             <button onclick="window.renameFolder(event, '${folder.id}')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 flex items-center gap-2">
                                 <span class="material-symbols-rounded text-[18px]">edit</span> Renombrar
                             </button>
@@ -866,6 +885,41 @@ window.renameFolder = function(event, folderId) {
         window.renderFoldersGrid();
         window.showToast("Carpeta renombrada exitosamente.", "edit");
     }
+};
+
+window.isFavoritesFilterActive = false;
+
+window.toggleFavoritesFilter = function() {
+    window.isFavoritesFilterActive = !window.isFavoritesFilterActive;
+    
+    const btn = document.getElementById('btn-filter-favorites');
+    const icon = document.getElementById('icon-filter-favorites');
+    
+    if (window.isFavoritesFilterActive) {
+        btn.classList.add('bg-yellow-50', 'dark:bg-yellow-500/10', 'border-yellow-500', 'text-yellow-500');
+        btn.classList.remove('bg-white', 'dark:bg-nova-800', 'text-gray-400');
+        icon.classList.add('fill-current');
+    } else {
+        btn.classList.remove('bg-yellow-50', 'dark:bg-yellow-500/10', 'border-yellow-500', 'text-yellow-500');
+        btn.classList.add('bg-white', 'dark:bg-nova-800', 'text-gray-400');
+        icon.classList.remove('fill-current');
+    }
+    
+    window.renderFoldersGrid();
+};
+
+window.toggleFavoriteFolder = function(event, folderId) {
+    event.stopPropagation();
+    window.toggleFolderOptions(event, folderId); // Close menu
+    
+    let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    let folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    
+    folder.isFavorite = !folder.isFavorite;
+    localStorage.setItem('nova_folders', JSON.stringify(folders));
+    if (window.saveChatsToCloud) window.saveChatsToCloud();
+    window.renderFoldersGrid();
 };
 
 window.deleteFolder = function(event, folderId) {
