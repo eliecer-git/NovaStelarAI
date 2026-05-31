@@ -514,7 +514,7 @@ window.submitPrompt = async function (text) {
     scrollBottom();
 
     try {
-        const iaResponse = await generateGeminiResponse(text);
+        const iaResponse = await generateAIResponse(text);
 
         // Guardar mensaje de la IA
         if (window.currentFolderId) {
@@ -610,15 +610,48 @@ function escapeHTML(str) {
 }
 
 // --- OMNIMODALITY AI BACKEND (API REAL CONNECTION) --- //
-async function generateGeminiResponse(prompt) {
-    let apiKey = localStorage.getItem('nova_gemini_api_key');
+window.openSettingsModal = function() {
+    const provider = localStorage.getItem('nova_ai_provider') || 'gemini';
+    const key = localStorage.getItem('nova_api_key') || '';
+    
+    document.getElementById('select-ai-provider').value = provider;
+    document.getElementById('input-api-key').value = key;
+    
+    const modal = document.getElementById('settings-modal');
+    modal.classList.remove('hidden');
+    void modal.offsetWidth;
+    modal.classList.add('opacity-100');
+    modal.querySelector('div').classList.remove('scale-95');
+};
+
+window.closeSettingsModal = function() {
+    const modal = document.getElementById('settings-modal');
+    modal.classList.remove('opacity-100');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
+
+window.saveAISettings = function() {
+    const provider = document.getElementById('select-ai-provider').value;
+    const key = document.getElementById('input-api-key').value.trim();
+    
+    localStorage.setItem('nova_ai_provider', provider);
+    localStorage.setItem('nova_api_key', key);
+    
+    window.closeSettingsModal();
+    window.showToast("Configuración IA guardada.", "settings");
+};
+
+async function generateAIResponse(prompt) {
+    let provider = localStorage.getItem('nova_ai_provider') || 'gemini';
+    let apiKey = localStorage.getItem('nova_api_key');
+    
+    // Si no hay API key, abrir modal
     if (!apiKey) {
-        apiKey = window.prompt("Para darle vida a NovaStelar, por favor ingresa tu API Key de Gemini (Google AI Studio). Es gratuita:");
-        if (!apiKey) {
-            return "⚠️ Has cancelado la inserción de la API Key. El cerebro de la IA está apagado.";
-        }
-        localStorage.setItem('nova_gemini_api_key', apiKey.trim());
-        apiKey = apiKey.trim();
+        window.openSettingsModal();
+        return "⚠️ Necesitas configurar tu API Key antes de hablar con la IA.";
     }
 
     // Build History
@@ -633,14 +666,23 @@ async function generateGeminiResponse(prompt) {
         currentSession = chatSessions.find(s => s.id === currentSessionId);
     }
     
-    // Convert session messages to Gemini format
+    try {
+        if (provider === 'gemini') {
+            return await runGemini(prompt, currentSession, apiKey);
+        } else if (provider === 'groq') {
+            return await runGroq(prompt, currentSession, apiKey);
+        }
+    } catch (err) {
+        console.error("AI Error:", err);
+        return `⚠️ **Fallo de Enlace Neuronal:** ${err.message}`;
+    }
+}
+
+async function runGemini(prompt, currentSession, apiKey) {
     let contents = [];
     if (currentSession && currentSession.messages) {
-        // En este punto, el mensaje actual ya fue pusheado a la sesión.
         for (let msg of currentSession.messages) {
-            // Filtrar mensajes vacíos o de error del sistema
             if (!msg.text || msg.text.startsWith("⚠️")) continue;
-            
             contents.push({
                 role: msg.role === 'user' ? 'user' : 'model',
                 parts: [{ text: msg.text }]
@@ -650,31 +692,67 @@ async function generateGeminiResponse(prompt) {
         contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
 
-    // Gemini requiere systemInstruction como un campo separado en v1beta, pero podemos omitirlo por ahora.
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: contents })
-        });
-        
-        if (!response.ok) {
-            if (response.status === 400 || response.status === 403) {
-                localStorage.removeItem('nova_gemini_api_key');
-                throw new Error("API Key de Gemini inválida o sin permisos.");
-            }
-            throw new Error(`Error en API: ${response.status}`);
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: contents })
+    });
+    
+    if (!response.ok) {
+        if (response.status === 400 || response.status === 403) {
+            localStorage.removeItem('nova_api_key');
+            throw new Error("API Key de Gemini inválida o sin permisos.");
         }
-        
-        const data = await response.json();
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            return data.candidates[0].content.parts[0].text;
-        } else {
-            return "Lo siento, mi núcleo procesador generó una respuesta ilegible.";
+        throw new Error(`Error en API: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+        return data.candidates[0].content.parts[0].text;
+    } else {
+        return "Lo siento, mi núcleo procesador generó una respuesta ilegible.";
+    }
+}
+
+async function runGroq(prompt, currentSession, apiKey) {
+    let messages = [];
+    if (currentSession && currentSession.messages) {
+        for (let msg of currentSession.messages) {
+            if (!msg.text || msg.text.startsWith("⚠️")) continue;
+            messages.push({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.text
+            });
         }
-    } catch (err) {
-        console.error("Gemini Error:", err);
-        return `⚠️ **Fallo de Enlace Neuronal:** ${err.message}`;
+    } else {
+        messages.push({ role: 'user', content: prompt });
+    }
+
+    const response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({ 
+            model: "llama3-70b-8192",
+            messages: messages
+        })
+    });
+    
+    if (!response.ok) {
+        if (response.status === 401) {
+            localStorage.removeItem('nova_api_key');
+            throw new Error("API Key de Groq inválida.");
+        }
+        throw new Error(`Error en API Groq: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+        return data.choices[0].message.content;
+    } else {
+        return "Error al decodificar la respuesta de Groq.";
     }
 }
 
