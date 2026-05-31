@@ -170,7 +170,13 @@
                 <h1 class="text-4xl md:text-5xl font-bold dark:text-white text-gray-800 mb-4 flex items-center justify-center gap-4">
                     <span class="material-symbols-rounded text-5xl text-brand-500">folder_managed</span> Entornos de Trabajo
                 </h1>
-                <p class="text-gray-500 dark:text-gray-400 text-lg">Organiza tus proyectos y conversaciones en universos aislados.</p>
+                <p class="text-gray-500 dark:text-gray-400 text-lg mb-8">Organiza tus proyectos y conversaciones en universos aislados.</p>
+                
+                <!-- Buscador de Carpetas -->
+                <div class="max-w-md mx-auto relative">
+                    <span class="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                    <input type="text" id="input-search-folder" oninput="window.renderFoldersGrid()" placeholder="Buscar entorno..." class="w-full bg-white dark:bg-nova-800 border border-gray-200 dark:border-white/10 rounded-2xl py-3 pl-12 pr-4 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition shadow-sm">
+                </div>
             </div>
             
             <div id="folders-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

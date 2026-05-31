@@ -769,6 +769,11 @@ window.renderFoldersGrid = function() {
     `;
     
     let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    const searchInput = document.getElementById('input-search-folder');
+    if (searchInput && searchInput.value.trim() !== '') {
+        const term = searchInput.value.trim().toLowerCase();
+        folders = folders.filter(f => f.name.toLowerCase().includes(term));
+    }
     
     folders.forEach(folder => {
         const folderDiv = document.createElement('div');
