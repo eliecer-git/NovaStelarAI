@@ -514,7 +514,7 @@ window.submitPrompt = async function (text) {
     scrollBottom();
 
     try {
-        const iaResponse = await fakeAIModelResponse(text, currentFeatureMode);
+        const iaResponse = await generateGeminiResponse(text);
 
         // Guardar mensaje de la IA
         if (window.currentFolderId) {
@@ -610,46 +610,71 @@ function escapeHTML(str) {
 }
 
 // --- OMNIMODALITY AI BACKEND (API REAL CONNECTION) --- //
-async function fakeAIModelResponse(prompt, explicitlySelectedMode) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 Segundos máximo de espera para el Cerebro Python
+async function generateGeminiResponse(prompt) {
+    let apiKey = localStorage.getItem('nova_gemini_api_key');
+    if (!apiKey) {
+        apiKey = window.prompt("Para darle vida a NovaStelar, por favor ingresa tu API Key de Gemini (Google AI Studio). Es gratuita:");
+        if (!apiKey) {
+            return "⚠️ Has cancelado la inserción de la API Key. El cerebro de la IA está apagado.";
+        }
+        localStorage.setItem('nova_gemini_api_key', apiKey.trim());
+        apiKey = apiKey.trim();
+    }
 
+    // Build History
+    let currentSession = null;
+    if (window.currentFolderId) {
+        let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+        let folder = folders.find(f => f.id === window.currentFolderId);
+        if (folder && folder.chatSessions) {
+            currentSession = folder.chatSessions.find(s => s.id === currentSessionId);
+        }
+    } else {
+        currentSession = chatSessions.find(s => s.id === currentSessionId);
+    }
+    
+    // Convert session messages to Gemini format
+    let contents = [];
+    if (currentSession && currentSession.messages) {
+        // En este punto, el mensaje actual ya fue pusheado a la sesión.
+        for (let msg of currentSession.messages) {
+            // Filtrar mensajes vacíos o de error del sistema
+            if (!msg.text || msg.text.startsWith("⚠️")) continue;
+            
+            contents.push({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
+            });
+        }
+    } else {
+        contents.push({ role: 'user', parts: [{ text: prompt }] });
+    }
+
+    // Gemini requiere systemInstruction como un campo separado en v1beta, pero podemos omitirlo por ahora.
     try {
-        const response = await fetch("http://localhost:8000/", {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                text: prompt,
-                mode: explicitlySelectedMode
-            })
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: contents })
         });
-
-        clearTimeout(timeoutId);
-
+        
         if (!response.ok) {
-            throw new Error(`Error de red neuronal: ${response.status}`);
+            if (response.status === 400 || response.status === 403) {
+                localStorage.removeItem('nova_gemini_api_key');
+                throw new Error("API Key de Gemini inválida o sin permisos.");
+            }
+            throw new Error(`Error en API: ${response.status}`);
         }
-
+        
         const data = await response.json();
-
-        // Si Python detecta un cálculo, podemos notificarlo visualmente
-        if (data.action_type === 'math') {
-            window.showToast("Cálculo matemático interceptado y resuelto puro", "calculate");
-        } else if (data.action_type === 'code') {
-            window.showToast("Compilación finalizada con éxito", "code");
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            return data.candidates[0].content.parts[0].text;
+        } else {
+            return "Lo siento, mi núcleo procesador generó una respuesta ilegible.";
         }
-
-        return data.response;
-    } catch (error) {
-        clearTimeout(timeoutId);
-        console.error("Conexión fallida al Cerebro Python:", error);
-        if (error.name === 'AbortError') {
-            return `⚠️ **Corte de Enlace Táctico.**\n\nEl servidor en red está tardando demasiado en responder (Timeout). Los escudos antibloqueo desconectaron el hilo para proteger la página.`;
-        }
-        return `⚠️ **Error de Conexión con el Cerebro Principal.**\n\nNo he podido conectarme a mi servidor de inteligencia artificial. \n\n*Detalle del fallo: ${error.message}*`;
+    } catch (err) {
+        console.error("Gemini Error:", err);
+        return `⚠️ **Fallo de Enlace Neuronal:** ${err.message}`;
     }
 }
 
