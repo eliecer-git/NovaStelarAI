@@ -686,3 +686,114 @@
     .landing-card { padding: 40px 20px; }
     .landing-glass-stack { display: none; }
 }
+
+/* === IMAGE ATTACHMENT PREVIEW === */
+#image-preview-strip {
+    display: none;
+    padding: 8px 12px;
+    align-items: center;
+    gap: 10px;
+}
+
+#image-preview-strip.active {
+    display: flex;
+}
+
+#image-preview-strip .preview-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 2px solid rgba(124, 172, 248, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+#image-preview-strip .preview-thumb:hover {
+    transform: scale(1.08);
+}
+
+#image-preview-strip .preview-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#image-preview-strip .preview-info .file-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #a8c7fa;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#image-preview-strip .preview-info .file-size {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+#image-preview-strip .preview-remove {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+#image-preview-strip .preview-remove:hover {
+    background: rgba(239, 68, 68, 0.3);
+    transform: scale(1.1);
+}
+
+/* User message with image */
+.msg-user-image {
+    max-width: 280px;
+    border-radius: 16px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(124, 172, 248, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* === AGENTIC ACTION TOAST === */
+@keyframes agentPulse {
+    0% { box-shadow: 0 0 0 0 rgba(124, 172, 248, 0.4); }
+    70% { box-shadow: 0 0 0 12px rgba(124, 172, 248, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(124, 172, 248, 0); }
+}
+
+.agent-action-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(124, 172, 248, 0.15), rgba(168, 85, 247, 0.15));
+    border: 1px solid rgba(124, 172, 248, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #a8c7fa;
+    animation: agentPulse 2s ease-out 1;
+}
+
+.agent-action-badge .material-symbols-rounded {
+    font-size: 14px;
+}
+
+/* AI Thinking Orb Animation */
+@keyframes aiSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.ai-spin {
+    animation: aiSpin 1.5s linear infinite;
+}

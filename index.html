@@ -364,6 +364,18 @@
                 <div
                     class="w-full bg-white dark:bg-nova-800 border border-gray-300 dark:border-white/10 rounded-[32px] shadow-xl focus-within:shadow-2xl dark:focus-within:bg-[#202224] transition-all relative flex flex-col px-3 py-2 min-h-[60px]">
 
+                    <!-- Image Preview Strip (Visible when image is attached) -->
+                    <div id="image-preview-strip">
+                        <img id="preview-thumb" class="preview-thumb" src="" alt="Preview">
+                        <div class="preview-info">
+                            <span id="preview-file-name" class="file-name">imagen.png</span>
+                            <span id="preview-file-size" class="file-size">0 KB</span>
+                        </div>
+                        <button id="preview-remove-btn" class="preview-remove" title="Quitar imagen">
+                            <span class="material-symbols-rounded text-[16px]">close</span>
+                        </button>
+                    </div>
+
                     <!-- Feature Badge (Muestra lo seleccionado del menu +) -->
                     <div id="feature-badge-container" class="hidden px-2 pt-2 pb-1">
                         <div
@@ -401,6 +413,16 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- Hidden File Input for Image Attachment -->
+                        <input type="file" id="image-attach-input" accept="image/*" class="hidden">
+
+                        <!-- Botón de Adjuntar Imagen (📎) -->
+                        <button id="attach-image-btn"
+                            class="w-10 h-10 shrink-0 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition flex items-center justify-center mb-1"
+                            title="Adjuntar imagen para análisis visual">
+                            <span class="material-symbols-rounded text-[22px]">image</span>
+                        </button>
 
                         <textarea id="user-input" rows="1"
                             class="flex-1 bg-transparent text-gray-900 dark:text-[#e3e3e3] placeholder-gray-500 focus:outline-none resize-none px-3 py-3 max-h-[200px] text-[15.5px] custom-scrollbar"

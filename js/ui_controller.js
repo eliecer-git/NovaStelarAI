@@ -26,8 +26,76 @@ window.ui = {
     featureBadgeClose: document.getElementById('feature-badge-close'),
 
     toastContainer: document.getElementById('toast-container'),
-    userGreetingText: document.getElementById('user-greeting-text')
+    userGreetingText: document.getElementById('user-greeting-text'),
+
+    // Vision / Image Attachment
+    attachImageBtn: document.getElementById('attach-image-btn'),
+    imageAttachInput: document.getElementById('image-attach-input'),
+    imagePreviewStrip: document.getElementById('image-preview-strip'),
+    previewThumb: document.getElementById('preview-thumb'),
+    previewFileName: document.getElementById('preview-file-name'),
+    previewFileSize: document.getElementById('preview-file-size'),
+    previewRemoveBtn: document.getElementById('preview-remove-btn'),
 };
+
+// --- VISION: IMAGE ATTACHMENT STATE --- //
+let pendingImageBase64 = null;
+let pendingImageMimeType = null;
+
+// Attach image button triggers hidden file input
+ui.attachImageBtn.addEventListener('click', () => {
+    ui.imageAttachInput.click();
+});
+
+// When user selects an image file
+ui.imageAttachInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        window.showToast('Solo se permiten archivos de imagen.', 'warning');
+        return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        window.showToast('La imagen es demasiado grande. Máximo 10MB.', 'warning');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        pendingImageBase64 = dataUrl.split(',')[1]; // Remove data:image/...;base64,
+        pendingImageMimeType = file.type;
+
+        // Show preview strip
+        ui.previewThumb.src = dataUrl;
+        ui.previewFileName.textContent = file.name;
+        ui.previewFileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+        ui.imagePreviewStrip.classList.add('active');
+
+        // Enable send button if there's text or just image
+        ui.btnSend.disabled = false;
+
+        window.showToast('Imagen adjuntada. Escribe tu pregunta sobre ella.', 'image');
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+});
+
+// Remove attached image
+ui.previewRemoveBtn.addEventListener('click', () => {
+    pendingImageBase64 = null;
+    pendingImageMimeType = null;
+    ui.imagePreviewStrip.classList.remove('active');
+    ui.previewThumb.src = '';
+
+    if (ui.input.value.trim().length === 0) {
+        ui.btnSend.disabled = true;
+    }
+});
 
 // --- CAPA 1: LANDING & AUTH TRANSITION --- //
 window.showAuthPortal = function(mode) {
@@ -409,7 +477,7 @@ ui.input.addEventListener('input', function () {
     this.style.height = 'auto'; // Reset
     this.style.height = (this.scrollHeight) + 'px';
 
-    if (this.value.trim().length > 0 && !isProcessing) {
+    if ((this.value.trim().length > 0 || pendingImageBase64) && !isProcessing) {
         ui.btnSend.disabled = false;
     } else {
         ui.btnSend.disabled = true;
@@ -435,8 +503,8 @@ ui.btnSend.addEventListener('click', () => {
 
 function submitPromptFromInput() {
     const text = ui.input.value.trim();
-    if (text && !isProcessing) {
-        window.submitPrompt(text);
+    if ((text || pendingImageBase64) && !isProcessing) {
+        window.submitPrompt(text || 'Describe esta imagen.');
     }
 }
 
@@ -507,14 +575,25 @@ window.submitPrompt = async function (text) {
         }
     }
 
-    renderUserMessage(text);
+    // If there's an attached image, capture it before clearing
+    const attachedImageBase64 = pendingImageBase64;
+    const attachedImageMime = pendingImageMimeType;
+    const attachedImageSrc = attachedImageBase64 ? ui.previewThumb.src : null;
+
+    // Clear the image attachment
+    pendingImageBase64 = null;
+    pendingImageMimeType = null;
+    ui.imagePreviewStrip.classList.remove('active');
+    ui.previewThumb.src = '';
+
+    renderUserMessage(text, attachedImageSrc);
     scrollBottom();
 
     ui.loadingIndicator.classList.remove('hidden');
     scrollBottom();
 
     try {
-        const iaResponse = await generateAIResponse(text);
+        const iaResponse = await generateAIResponse(text, attachedImageBase64, attachedImageMime);
 
         // Guardar mensaje de la IA
         if (window.currentFolderId) {
@@ -552,11 +631,15 @@ window.submitPrompt = async function (text) {
     }
 }
 
-function renderUserMessage(text) {
+function renderUserMessage(text, imageSrc) {
     const safeText = escapeHTML(text);
+    const imageHTML = imageSrc ? `<img src="${imageSrc}" class="msg-user-image" alt="Imagen adjuntada">` : '';
     const html = `
         <div class="msg-bubble msg-user animate-[fadeIn_0.3s_ease-out]">
-            <div class="bubble-content shadow-sm text-[15.5px]">${safeText}</div>
+            <div class="bubble-content shadow-sm text-[15.5px]">
+                ${imageHTML}
+                ${safeText}
+            </div>
         </div>
     `;
     ui.chatThread.insertAdjacentHTML('beforeend', html);
@@ -644,7 +727,84 @@ window.saveAISettings = function() {
     window.showToast("Configuración IA guardada.", "settings");
 };
 
-async function generateAIResponse(prompt) {
+// --- AGENTIC SYSTEM PROMPT --- //
+const AGENT_SYSTEM_PROMPT = `Eres NovaStelar, un asistente IA avanzado con capacidades agénticas. Además de responder preguntas normalmente, puedes ejecutar acciones en la interfaz del usuario.
+
+CUANDO el usuario te pida explícitamente realizar una de estas acciones en la interfaz (crear carpeta, limpiar chat, cambiar tema, renombrarse), responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adicional, sin markdown, sin backticks:
+{"agent_action": "<acción>", "value": "<valor>", "confirmation": "<mensaje corto de confirmación>"}
+
+Acciones disponibles:
+- "create_folder" → Crear una nueva carpeta/entorno. value = nombre de la carpeta.
+- "clear_chat" → Limpiar/borrar el chat actual. value = "".
+- "toggle_theme" → Cambiar entre tema claro y oscuro. value = "".
+- "rename_ai" → Cambiar el nombre de la IA. value = nuevo nombre.
+
+Ejemplos:
+Usuario: "Crea una carpeta llamada Proyectos de Python"
+Respuesta: {"agent_action": "create_folder", "value": "Proyectos de Python", "confirmation": "He creado la carpeta 'Proyectos de Python' para ti."}
+
+Usuario: "Limpia este chat"
+Respuesta: {"agent_action": "clear_chat", "value": "", "confirmation": "He limpiado el chat actual."}
+
+Usuario: "Cambia al tema claro"
+Respuesta: {"agent_action": "toggle_theme", "value": "", "confirmation": "He cambiado el tema de la interfaz."}
+
+Si el usuario NO te pide explícitamente una de estas acciones, responde normalmente con texto. NUNCA respondas con JSON si no es una acción de interfaz.`;
+
+// --- AGENTIC ACTION EXECUTOR --- //
+function tryExecuteAgentAction(responseText) {
+    // Try to detect if the response is an agent action JSON
+    let cleaned = responseText.trim();
+    
+    // Remove markdown code fences if present
+    if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+    }
+    
+    try {
+        const action = JSON.parse(cleaned);
+        if (!action.agent_action) return null; // Not an agent action
+        
+        switch (action.agent_action) {
+            case 'create_folder': {
+                if (!action.value) return null;
+                let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+                const newFolder = {
+                    id: 'folder_' + Date.now(),
+                    name: action.value,
+                    createdAt: new Date().toISOString()
+                };
+                folders.push(newFolder);
+                localStorage.setItem('nova_folders', JSON.stringify(folders));
+                if (window.saveChatsToCloud) window.saveChatsToCloud();
+                if (window.renderFoldersGrid) window.renderFoldersGrid();
+                break;
+            }
+            case 'clear_chat': {
+                resetWorkspace();
+                break;
+            }
+            case 'toggle_theme': {
+                ui.btnTheme.click();
+                break;
+            }
+            case 'rename_ai': {
+                if (action.value) {
+                    localStorage.setItem('nova_ai_name', action.value);
+                }
+                break;
+            }
+            default:
+                return null;
+        }
+        
+        return action;
+    } catch (e) {
+        return null; // Not JSON, normal text response
+    }
+}
+
+async function generateAIResponse(prompt, imageBase64, imageMimeType) {
     let provider = localStorage.getItem('nova_ai_provider') || 'gemini';
     let apiKey = localStorage.getItem('nova_api_key');
     
@@ -672,43 +832,80 @@ async function generateAIResponse(prompt) {
     }
     
     try {
+        let rawResponse;
         if (provider === 'gemini') {
-            return await runGemini(prompt, currentSession, apiKey, folderContext);
+            rawResponse = await runGemini(prompt, currentSession, apiKey, folderContext, imageBase64, imageMimeType);
         } else if (provider === 'groq') {
-            return await runGroq(prompt, currentSession, apiKey, folderContext);
+            rawResponse = await runGroq(prompt, currentSession, apiKey, folderContext);
         }
+        
+        // --- AGENTIC INTERCEPTOR --- //
+        const agentResult = tryExecuteAgentAction(rawResponse);
+        if (agentResult) {
+            const actionIcons = {
+                create_folder: 'create_new_folder',
+                clear_chat: 'delete_sweep',
+                toggle_theme: 'contrast',
+                rename_ai: 'badge'
+            };
+            const icon = actionIcons[agentResult.agent_action] || 'smart_toy';
+            const badge = `<div class="agent-action-badge"><span class="material-symbols-rounded">${icon}</span> Acción ejecutada</div>`;
+            window.showToast('🤖 Acción agéntica ejecutada.', 'smart_toy');
+            return `${badge}\n\n${agentResult.confirmation || 'Listo.'}`;
+        }
+        
+        return rawResponse;
     } catch (err) {
         console.error("AI Error:", err);
         return `⚠️ **Fallo de Enlace Neuronal:** ${err.message}`;
     }
 }
 
-async function runGemini(prompt, currentSession, apiKey, folderContext) {
+async function runGemini(prompt, currentSession, apiKey, folderContext, imageBase64, imageMimeType) {
     let contents = [];
     
-    // Si hay contexto de carpeta, inyectarlo como un mensaje de sistema falso (Gemini v1beta lo acepta así o en systemInstruction)
+    // Inject Agent System Prompt + Folder Context
+    let systemContext = AGENT_SYSTEM_PROMPT;
     if (folderContext) {
-        contents.push({
-            role: 'user',
-            parts: [{ text: `INSTRUCCIÓN DE SISTEMA / CONTEXTO OBLIGATORIO: \n\n${folderContext}\n\nActúa siempre bajo estas instrucciones en las siguientes interacciones.` }]
-        });
-        contents.push({
-            role: 'model',
-            parts: [{ text: "Entendido. A partir de ahora responderé utilizando este contexto como base fundamental." }]
-        });
+        systemContext += `\n\nCONTEXTO ADICIONAL DE CARPETA:\n${folderContext}`;
     }
+    
+    contents.push({
+        role: 'user',
+        parts: [{ text: `INSTRUCCIÓN DE SISTEMA / CONTEXTO OBLIGATORIO: \n\n${systemContext}\n\nActúa siempre bajo estas instrucciones en las siguientes interacciones.` }]
+    });
+    contents.push({
+        role: 'model',
+        parts: [{ text: "Entendido. Soy NovaStelar con capacidades agénticas y de visión. Responderé normalmente a menos que me pidas ejecutar una acción en la interfaz." }]
+    });
 
     if (currentSession && currentSession.messages) {
         for (let msg of currentSession.messages) {
             if (!msg.text || msg.text.startsWith("⚠️")) continue;
+            // Skip agent action badges from history
+            if (msg.text.includes('agent-action-badge')) continue;
             contents.push({
                 role: msg.role === 'user' ? 'user' : 'model',
                 parts: [{ text: msg.text }]
             });
         }
-    } else {
-        contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
+
+    // Build the current user message parts
+    let currentUserParts = [];
+    
+    // If there's an image attached, add it as inlineData (Gemini Vision)
+    if (imageBase64 && imageMimeType) {
+        currentUserParts.push({
+            inlineData: {
+                mimeType: imageMimeType,
+                data: imageBase64
+            }
+        });
+    }
+    
+    currentUserParts.push({ text: prompt });
+    contents.push({ role: 'user', parts: currentUserParts });
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -735,24 +932,29 @@ async function runGemini(prompt, currentSession, apiKey, folderContext) {
 async function runGroq(prompt, currentSession, apiKey, folderContext) {
     let messages = [];
     
+    // Inject Agent System Prompt + Folder Context for Groq
+    let systemContext = AGENT_SYSTEM_PROMPT;
     if (folderContext) {
-        messages.push({
-            role: 'system',
-            content: folderContext
-        });
+        systemContext += `\n\nCONTEXTO ADICIONAL DE CARPETA:\n${folderContext}`;
     }
+    messages.push({
+        role: 'system',
+        content: systemContext
+    });
 
     if (currentSession && currentSession.messages) {
         for (let msg of currentSession.messages) {
             if (!msg.text || msg.text.startsWith("⚠️")) continue;
+            if (msg.text.includes('agent-action-badge')) continue;
             messages.push({
                 role: msg.role === 'user' ? 'user' : 'assistant',
                 content: msg.text
             });
         }
-    } else {
-        messages.push({ role: 'user', content: prompt });
     }
+    
+    // Always add the current prompt
+    messages.push({ role: 'user', content: prompt });
 
     const response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
         method: 'POST',
