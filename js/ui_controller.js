@@ -656,11 +656,16 @@ async function generateAIResponse(prompt) {
 
     // Build History
     let currentSession = null;
+    let folderContext = null;
+    
     if (window.currentFolderId) {
         let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
         let folder = folders.find(f => f.id === window.currentFolderId);
-        if (folder && folder.chatSessions) {
-            currentSession = folder.chatSessions.find(s => s.id === currentSessionId);
+        if (folder) {
+            folderContext = folder.context || null;
+            if (folder.chatSessions) {
+                currentSession = folder.chatSessions.find(s => s.id === currentSessionId);
+            }
         }
     } else {
         currentSession = chatSessions.find(s => s.id === currentSessionId);
@@ -668,9 +673,9 @@ async function generateAIResponse(prompt) {
     
     try {
         if (provider === 'gemini') {
-            return await runGemini(prompt, currentSession, apiKey);
+            return await runGemini(prompt, currentSession, apiKey, folderContext);
         } else if (provider === 'groq') {
-            return await runGroq(prompt, currentSession, apiKey);
+            return await runGroq(prompt, currentSession, apiKey, folderContext);
         }
     } catch (err) {
         console.error("AI Error:", err);
@@ -678,8 +683,21 @@ async function generateAIResponse(prompt) {
     }
 }
 
-async function runGemini(prompt, currentSession, apiKey) {
+async function runGemini(prompt, currentSession, apiKey, folderContext) {
     let contents = [];
+    
+    // Si hay contexto de carpeta, inyectarlo como un mensaje de sistema falso (Gemini v1beta lo acepta así o en systemInstruction)
+    if (folderContext) {
+        contents.push({
+            role: 'user',
+            parts: [{ text: `INSTRUCCIÓN DE SISTEMA / CONTEXTO OBLIGATORIO: \n\n${folderContext}\n\nActúa siempre bajo estas instrucciones en las siguientes interacciones.` }]
+        });
+        contents.push({
+            role: 'model',
+            parts: [{ text: "Entendido. A partir de ahora responderé utilizando este contexto como base fundamental." }]
+        });
+    }
+
     if (currentSession && currentSession.messages) {
         for (let msg of currentSession.messages) {
             if (!msg.text || msg.text.startsWith("⚠️")) continue;
@@ -714,8 +732,16 @@ async function runGemini(prompt, currentSession, apiKey) {
     }
 }
 
-async function runGroq(prompt, currentSession, apiKey) {
+async function runGroq(prompt, currentSession, apiKey, folderContext) {
     let messages = [];
+    
+    if (folderContext) {
+        messages.push({
+            role: 'system',
+            content: folderContext
+        });
+    }
+
     if (currentSession && currentSession.messages) {
         for (let msg of currentSession.messages) {
             if (!msg.text || msg.text.startsWith("⚠️")) continue;
@@ -1075,6 +1101,51 @@ window.closeConfirmModal = function() {
     setTimeout(() => {
         modal.classList.add('hidden');
     }, 300);
+};
+
+// --- KNOWLEDGE BASE (CONTEXTO DE CARPETA) --- //
+window.openKnowledgeModal = function() {
+    if (!window.currentFolderId) return;
+    
+    let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    let folder = folders.find(f => f.id === window.currentFolderId);
+    
+    if (folder) {
+        document.getElementById('input-folder-knowledge').value = folder.context || '';
+    }
+    
+    const modal = document.getElementById('knowledge-modal');
+    modal.classList.remove('hidden');
+    void modal.offsetWidth;
+    modal.classList.add('opacity-100');
+    modal.querySelector('div').classList.remove('scale-95');
+};
+
+window.closeKnowledgeModal = function() {
+    const modal = document.getElementById('knowledge-modal');
+    modal.classList.remove('opacity-100');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
+
+window.saveFolderKnowledge = function() {
+    if (!window.currentFolderId) return;
+    
+    const text = document.getElementById('input-folder-knowledge').value.trim();
+    
+    let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+    let folder = folders.find(f => f.id === window.currentFolderId);
+    
+    if (folder) {
+        folder.context = text;
+        localStorage.setItem('nova_folders', JSON.stringify(folders));
+        if (window.saveChatsToCloud) window.saveChatsToCloud();
+        
+        window.closeKnowledgeModal();
+        window.showToast("Conocimiento anclado exitosamente.", "menu_book");
+    }
 };
 
 window.currentFolderId = null;
