@@ -10,8 +10,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -54,7 +53,7 @@
 
     <!-- Pantalla de Carga Global (Oculta por defecto, mostrada por JS rápido) -->
     <div id="global-loading-screen" class="fixed inset-0 bg-nova-900 z-[9999] hidden flex-col items-center justify-center transition-opacity duration-500">
-        <div class="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <img src="assets/logo.png" alt="NovaStelar" class="w-20 h-20 mb-6 animate-pulse drop-shadow-[0_0_20px_rgba(77,243,255,0.5)]">
         <h2 class="text-white text-xl font-medium tracking-wide">Iniciando NovaStelar...</h2>
         <p class="text-gray-400 text-sm mt-2">Sincronizando entornos estelares</p>
     </div>
@@ -68,7 +67,8 @@
             <!-- Seccion Inicial: Botones de Entrada -->
             <div id="landing-initial-view">
                 <div class="landing-header">
-                    <h1 class="landing-title">Bienvenido a NovaStelarAI <span class="star-icon">✦</span></h1>
+                    <img src="assets/logo.png" alt="NovaStelar AI" class="w-24 h-24 mx-auto mb-6 drop-shadow-[0_0_30px_rgba(77,243,255,0.6)] animate-pulse">
+                    <h1 class="landing-title">NovaStelarAI <span class="star-icon">✦</span></h1>
                     <p class="landing-subtitle">La inteligencia artificial más avanzada, diseñada por Eliecer para expandir tus límites.</p>
                 </div>
                 
@@ -304,9 +304,7 @@
         <div class="flex-1 overflow-y-auto flex flex-col items-center custom-scrollbar pb-[180px]" id="chat-stream">
             <!-- Central Content -->
             <div id="central-content" class="flex-1 flex flex-col items-center justify-center p-4 min-h-[60vh]">
-                <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-8 animate-pulse">
-                    <span class="material-symbols-rounded text-3xl text-white/40">auto_awesome</span>
-                </div>
+                <img src="assets/logo.png" alt="NovaStelar" class="w-20 h-20 mb-8 opacity-40 animate-pulse drop-shadow-[0_0_15px_rgba(77,243,255,0.3)]">
                 <h1 id="user-greeting" class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-brand-400 mb-12 text-center">
                     Hola, Viajero Estelar
                 </h1>
