@@ -730,11 +730,13 @@ window.saveAISettings = function() {
 // --- AGENTIC SYSTEM PROMPT --- //
 const AGENT_SYSTEM_PROMPT = `Eres NovaStelar, un asistente IA avanzado con capacidades agénticas. Además de responder preguntas normalmente, puedes ejecutar acciones en la interfaz del usuario.
 
-CUANDO el usuario te pida explícitamente realizar una de estas acciones en la interfaz (crear carpeta, limpiar chat, cambiar tema, renombrarse), responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adicional, sin markdown, sin backticks:
+CUANDO el usuario te pida explícitamente realizar una de estas acciones en la interfaz, responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adicional, sin markdown, sin backticks:
 {"agent_action": "<acción>", "value": "<valor>", "confirmation": "<mensaje corto de confirmación>"}
 
 Acciones disponibles:
 - "create_folder" → Crear una nueva carpeta/entorno. value = nombre de la carpeta.
+- "enter_folder" → Entrar/abrir/navegar a una carpeta existente. value = nombre exacto o parcial de la carpeta.
+- "exit_folder" → Salir de la carpeta actual y volver al inicio. value = "".
 - "clear_chat" → Limpiar/borrar el chat actual. value = "".
 - "toggle_theme" → Cambiar entre tema claro y oscuro. value = "".
 - "rename_ai" → Cambiar el nombre de la IA. value = nuevo nombre.
@@ -742,6 +744,12 @@ Acciones disponibles:
 Ejemplos:
 Usuario: "Crea una carpeta llamada Proyectos de Python"
 Respuesta: {"agent_action": "create_folder", "value": "Proyectos de Python", "confirmation": "He creado la carpeta 'Proyectos de Python' para ti."}
+
+Usuario: "Entra a la carpeta Matemáticas" o "Méteme a Matemáticas" o "Abre la carpeta Matemáticas"
+Respuesta: {"agent_action": "enter_folder", "value": "Matemáticas", "confirmation": "Te he llevado a la carpeta 'Matemáticas'."}
+
+Usuario: "Sal de esta carpeta" o "Vuelve al inicio"
+Respuesta: {"agent_action": "exit_folder", "value": "", "confirmation": "He salido de la carpeta actual."}
 
 Usuario: "Limpia este chat"
 Respuesta: {"agent_action": "clear_chat", "value": "", "confirmation": "He limpiado el chat actual."}
@@ -778,6 +786,37 @@ function tryExecuteAgentAction(responseText) {
                 localStorage.setItem('nova_folders', JSON.stringify(folders));
                 if (window.saveChatsToCloud) window.saveChatsToCloud();
                 if (window.renderFoldersGrid) window.renderFoldersGrid();
+                break;
+            }
+            case 'enter_folder': {
+                if (!action.value) return null;
+                let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+                // Fuzzy match: find folder by exact name or partial match (case-insensitive)
+                let folder = folders.find(f => f.name.toLowerCase() === action.value.toLowerCase());
+                if (!folder) {
+                    folder = folders.find(f => f.name.toLowerCase().includes(action.value.toLowerCase()));
+                }
+                if (!folder) {
+                    action.confirmation = `No encontré ninguna carpeta con el nombre "${action.value}". Verifica que exista.`;
+                    action._failed = true;
+                    break;
+                }
+                // Use a small delay to let the current AI response render first
+                setTimeout(() => {
+                    window.enterFolder(folder.id);
+                }, 600);
+                action.confirmation = action.confirmation || `Te he llevado a la carpeta '${folder.name}'.`;
+                break;
+            }
+            case 'exit_folder': {
+                if (!window.currentFolderId) {
+                    action.confirmation = 'No estás dentro de ninguna carpeta actualmente.';
+                    action._failed = true;
+                    break;
+                }
+                setTimeout(() => {
+                    window.exitFolder();
+                }, 600);
                 break;
             }
             case 'clear_chat': {
@@ -844,14 +883,21 @@ async function generateAIResponse(prompt, imageBase64, imageMimeType) {
         if (agentResult) {
             const actionIcons = {
                 create_folder: 'create_new_folder',
+                enter_folder: 'folder_open',
+                exit_folder: 'logout',
                 clear_chat: 'delete_sweep',
                 toggle_theme: 'contrast',
                 rename_ai: 'badge'
             };
             const icon = actionIcons[agentResult.agent_action] || 'smart_toy';
-            const badge = `<div class="agent-action-badge"><span class="material-symbols-rounded">${icon}</span> Acción ejecutada</div>`;
-            window.showToast('🤖 Acción agéntica ejecutada.', 'smart_toy');
-            return `${badge}\n\n${agentResult.confirmation || 'Listo.'}`;
+            const badgeLabel = agentResult._failed ? 'Acción no completada' : 'Acción ejecutada';
+            const badge = `<div class="agent-action-badge"><span class="material-symbols-rounded">${icon}</span> ${badgeLabel}</div>`;
+            if (!agentResult._failed) {
+                window.showToast('🤖 Acción agéntica ejecutada.', 'smart_toy');
+            } else {
+                window.showToast('⚠️ ' + agentResult.confirmation, 'warning');
+            }
+            return `${badge}\n\n${agentResult.confirmation || 'Listo.'}`; 
         }
         
         return rawResponse;
