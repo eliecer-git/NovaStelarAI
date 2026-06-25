@@ -543,6 +543,7 @@ window.submitPrompt = async function (text) {
             }
         } else {
             chatSessions.push(newSession);
+            saveChatsToLocal(); // <-- Guardar inmediatamente para que no se pierda
         }
 
         // Actualizar el sidebar completo para que el nuevo chat tenga los 3 puntos de opciones
