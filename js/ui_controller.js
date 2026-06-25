@@ -693,6 +693,12 @@ function resetWorkspace() {
     currentSessionId = null; // Reiniciar para que el próximo mensaje cree una nueva sesión
     ui.input.value = '';
     ui.input.focus();
+    
+    // Si la IA estaba procesando, forzamos la cancelación visual
+    isProcessing = false;
+    ui.loadingIndicator.classList.add('hidden');
+    ui.input.disabled = false;
+    ui.btnSend.innerHTML = '<span class="material-symbols-rounded text-[22px] font-medium">arrow_upward</span>';
 
     // Si la abrimos en movil la volvemos a cerrar
     if (window.innerWidth < 640 && !ui.sidebar.classList.contains('collapsed')) {
@@ -1002,18 +1008,22 @@ async function runGemini(prompt, currentSession, apiKey, folderContext, imageBas
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         
-        let parts = buffer.split('\n\n');
-        buffer = parts.pop(); 
+        // Split by lines instead of double-newlines for robust SSE parsing
+        let lines = buffer.split(/\r?\n/);
+        buffer = lines.pop(); // keep incomplete line
         
-        for (const part of parts) {
-            if (part.startsWith('data: ')) {
-                const dataStr = part.slice(6);
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6);
                 if (dataStr.trim() === '[DONE]') continue;
                 try {
                     const data = JSON.parse(dataStr);
                     if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
-                        fullText += data.candidates[0].content.parts[0].text;
-                        if (onChunk) onChunk(fullText);
+                        const textPart = data.candidates[0].content.parts[0].text;
+                        if (textPart) {
+                            fullText += textPart;
+                            if (onChunk) onChunk(fullText);
+                        }
                     }
                 } catch(e) { }
             }
@@ -1080,18 +1090,22 @@ async function runGroq(prompt, currentSession, apiKey, folderContext, onChunk) {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         
-        let parts = buffer.split('\n\n');
-        buffer = parts.pop(); 
+        // Split by lines for robust SSE parsing
+        let lines = buffer.split(/\r?\n/);
+        buffer = lines.pop(); 
         
-        for (const part of parts) {
-            if (part.startsWith('data: ')) {
-                const dataStr = part.slice(6);
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6);
                 if (dataStr.trim() === '[DONE]') continue;
                 try {
                     const data = JSON.parse(dataStr);
                     if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
-                        fullText += data.choices[0].delta.content;
-                        if (onChunk) onChunk(fullText);
+                        const chunk = data.choices[0].delta.content;
+                        if (chunk) {
+                            fullText += chunk;
+                            if (onChunk) onChunk(fullText);
+                        }
                     }
                 } catch(e) { }
             }
