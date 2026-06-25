@@ -127,7 +127,7 @@ window.syncChatsFromCloud = async function(uid) {
     if (!user) return;
 
     try {
-        const token = await user.getIdToken();
+        const token = await user.getIdToken(true); // Force refresh token
         const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${uid}`;
         
         const response = await fetch(url, {
@@ -159,6 +159,9 @@ window.syncChatsFromCloud = async function(uid) {
             }
         } else if (response.status === 404) {
             console.log("📭 No hay datos previos en la nube para este usuario.");
+        } else if (response.status === 403) {
+            console.warn("🔒 Firestore: Permisos insuficientes. Usando datos locales.");
+            // No mostrar toast al cargar para no molestar — los datos locales funcionan bien
         } else {
             const errText = await response.text();
             console.error("❌ REST API error:", response.status, errText);
@@ -182,7 +185,7 @@ window.saveChatsToCloud = async function() {
     if (!chatsRaw && !userName) return;
 
     try {
-        const token = await user.getIdToken();
+        const token = await user.getIdToken(true); // Force refresh token
         const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${user.uid}`;
         
         let fields = {
@@ -213,6 +216,8 @@ window.saveChatsToCloud = async function() {
 
         if (response.ok) {
             console.log("✅ Datos (chats/nombre) guardados en la nube (REST API)");
+        } else if (response.status === 403) {
+            console.warn("🔒 Firestore: Sin permisos para guardar. Datos guardados localmente.");
         } else {
             const errText = await response.text();
             console.error("❌ Error guardando (REST):", response.status, errText);
