@@ -545,14 +545,8 @@ window.submitPrompt = async function (text) {
             chatSessions.push(newSession);
         }
 
-        // Crear el botón en el Frontend (Sidebar Historial)
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <button class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] text-gray-700 dark:text-[#e3e3e3] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors truncate flex items-center gap-3 font-medium active:scale-95 focus:outline-none" onclick="window.loadChat(${currentSessionId})">
-                <span class="material-symbols-rounded text-[18px] opacity-70">chat_bubble</span> ${summary}
-            </button>
-        `;
-        ui.historyList.prepend(li);
+        // Actualizar el sidebar completo para que el nuevo chat tenga los 3 puntos de opciones
+        window.renderHistorySidebar();
     }
 
     // Obtener Sesión Actual y guardar el mensaje del Usuario
