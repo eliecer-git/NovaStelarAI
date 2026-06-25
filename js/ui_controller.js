@@ -587,8 +587,23 @@ window.submitPrompt = async function (text) {
     ui.loadingIndicator.classList.remove('hidden');
     scrollBottom();
 
+    // Crear burbuja vacía
+    const aiBubble = renderEmptyAIMessage();
+    const aiContentDiv = aiBubble.querySelector('.bubble-content');
+    
+    // Callback para ir actualizando el texto en tiempo real
+    const onChunk = (chunkText) => {
+        ui.loadingIndicator.classList.add('hidden');
+        aiContentDiv.innerHTML = window.marked ? marked.parse(chunkText) : chunkText;
+        scrollBottom();
+    };
+
     try {
-        const iaResponse = await generateAIResponse(text, attachedImageBase64, attachedImageMime);
+        const iaResponse = await generateAIResponse(text, attachedImageBase64, attachedImageMime, onChunk);
+
+        // Render final completo y highlighting (por si es una acción agéntica que ocultó el stream)
+        aiContentDiv.innerHTML = window.marked ? marked.parse(iaResponse) : iaResponse;
+        if (window.Prism) Prism.highlightAllUnder(aiBubble);
 
         // Guardar mensaje de la IA
         if (window.currentFolderId) {
@@ -610,11 +625,9 @@ window.submitPrompt = async function (text) {
             }
         }
 
-        ui.loadingIndicator.classList.add('hidden');
-        renderAIMessage(iaResponse);
     } catch (err) {
         ui.loadingIndicator.classList.add('hidden');
-        renderAIMessage("⚠️ Ocurrió un error general en la Red Estelar.");
+        aiContentDiv.innerHTML = "⚠️ **Fallo de Enlace Neuronal:** " + err.message;
         console.error(err);
     } finally {
         isProcessing = false;
@@ -640,8 +653,7 @@ function renderUserMessage(text, imageSrc) {
     ui.chatThread.insertAdjacentHTML('beforeend', html);
 }
 
-function renderAIMessage(markdownText) {
-    const parsedHTML = window.marked ? marked.parse(markdownText) : markdownText;
+function renderEmptyAIMessage() {
     const aiName = localStorage.getItem('nova_ai_name') || 'NovaStelar';
     const html = `
         <div class="msg-bubble msg-ai animate-[fadeIn_0.3s_ease-out]">
@@ -651,13 +663,20 @@ function renderAIMessage(markdownText) {
             <div class="flex-1 w-full max-w-[85%]">
                 <div class="text-[11px] font-bold text-brand-600 dark:text-brand-400 mb-0.5 tracking-wider uppercase">${aiName}</div>
                 <div class="bubble-content markdown-body text-[15px] pt-0 pb-2">
-                    ${parsedHTML}
+                    <span class="animate-pulse">Escribiendo...</span>
                 </div>
             </div>
         </div>
     `;
     ui.chatThread.insertAdjacentHTML('beforeend', html);
-    if (window.Prism) Prism.highlightAllUnder(ui.chatThread);
+    return ui.chatThread.lastElementChild;
+}
+
+function renderAIMessage(markdownText) {
+    const aiBubble = renderEmptyAIMessage();
+    const aiContentDiv = aiBubble.querySelector('.bubble-content');
+    aiContentDiv.innerHTML = window.marked ? marked.parse(markdownText) : markdownText;
+    if (window.Prism) Prism.highlightAllUnder(aiBubble);
 }
 
 function scrollBottom() {
@@ -838,7 +857,7 @@ function tryExecuteAgentAction(responseText) {
     }
 }
 
-async function generateAIResponse(prompt, imageBase64, imageMimeType) {
+async function generateAIResponse(prompt, imageBase64, imageMimeType, onChunk) {
     let provider = localStorage.getItem('nova_ai_provider') || 'gemini';
     let apiKey = localStorage.getItem('nova_api_key');
     
@@ -867,10 +886,21 @@ async function generateAIResponse(prompt, imageBase64, imageMimeType) {
     
     try {
         let rawResponse;
+        
+        // Interceptor para evitar mostrar JSON de acciones al usuario mientras hace streaming
+        const internalOnChunk = (chunkText) => {
+            const trimmed = chunkText.trimStart();
+            // Si parece que está escribiendo JSON o markdown de JSON, no se actualiza la interfaz
+            if (trimmed.startsWith('{') || trimmed.startsWith('```json') || trimmed.startsWith('```\n{')) {
+                return;
+            }
+            if (onChunk) onChunk(chunkText);
+        };
+
         if (provider === 'gemini') {
-            rawResponse = await runGemini(prompt, currentSession, apiKey, folderContext, imageBase64, imageMimeType);
+            rawResponse = await runGemini(prompt, currentSession, apiKey, folderContext, imageBase64, imageMimeType, internalOnChunk);
         } else if (provider === 'groq') {
-            rawResponse = await runGroq(prompt, currentSession, apiKey, folderContext);
+            rawResponse = await runGroq(prompt, currentSession, apiKey, folderContext, internalOnChunk);
         }
         
         // --- AGENTIC INTERCEPTOR --- //
@@ -902,7 +932,7 @@ async function generateAIResponse(prompt, imageBase64, imageMimeType) {
     }
 }
 
-async function runGemini(prompt, currentSession, apiKey, folderContext, imageBase64, imageMimeType) {
+async function runGemini(prompt, currentSession, apiKey, folderContext, imageBase64, imageMimeType, onChunk) {
     let contents = [];
     
     // Inject Agent System Prompt + Folder Context
@@ -948,7 +978,7 @@ async function runGemini(prompt, currentSession, apiKey, folderContext, imageBas
     currentUserParts.push({ text: prompt });
     contents.push({ role: 'user', parts: currentUserParts });
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: contents })
@@ -962,15 +992,37 @@ async function runGemini(prompt, currentSession, apiKey, folderContext, imageBas
         throw new Error(`Error en API: ${response.status}`);
     }
     
-    const data = await response.json();
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-        return data.candidates[0].content.parts[0].text;
-    } else {
-        return "Lo siento, mi núcleo procesador generó una respuesta ilegible.";
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+    let buffer = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        
+        let parts = buffer.split('\n\n');
+        buffer = parts.pop(); 
+        
+        for (const part of parts) {
+            if (part.startsWith('data: ')) {
+                const dataStr = part.slice(6);
+                if (dataStr.trim() === '[DONE]') continue;
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+                        fullText += data.candidates[0].content.parts[0].text;
+                        if (onChunk) onChunk(fullText);
+                    }
+                } catch(e) { }
+            }
+        }
     }
+    return fullText || "Lo siento, mi núcleo procesador generó una respuesta vacía.";
 }
 
-async function runGroq(prompt, currentSession, apiKey, folderContext) {
+async function runGroq(prompt, currentSession, apiKey, folderContext, onChunk) {
     let messages = [];
     
     // Inject Agent System Prompt + Folder Context for Groq
@@ -1005,7 +1057,8 @@ async function runGroq(prompt, currentSession, apiKey, folderContext) {
         },
         body: JSON.stringify({ 
             model: "llama3-70b-8192",
-            messages: messages
+            messages: messages,
+            stream: true
         })
     });
     
@@ -1016,13 +1069,35 @@ async function runGroq(prompt, currentSession, apiKey, folderContext) {
         }
         throw new Error(`Error en API Groq: ${response.status}`);
     }
-    
-    const data = await response.json();
-    if (data.choices && data.choices[0] && data.choices[0].message) {
-        return data.choices[0].message.content;
-    } else {
-        return "Error al decodificar la respuesta de Groq.";
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+    let buffer = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        
+        let parts = buffer.split('\n\n');
+        buffer = parts.pop(); 
+        
+        for (const part of parts) {
+            if (part.startsWith('data: ')) {
+                const dataStr = part.slice(6);
+                if (dataStr.trim() === '[DONE]') continue;
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+                        fullText += data.choices[0].delta.content;
+                        if (onChunk) onChunk(fullText);
+                    }
+                } catch(e) { }
+            }
+        }
     }
+    return fullText || "Error al decodificar la respuesta de Groq.";
 }
 
 // --- FASE 1: NAVEGACIÓN DE CARPETAS (Solo Visual) --- //
