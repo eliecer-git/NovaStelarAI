@@ -756,6 +756,8 @@ CUANDO el usuario te pida explícitamente realizar una de estas acciones en la i
 Acciones disponibles:
 - "create_folder" → Crear una nueva carpeta/entorno. value = nombre de la carpeta.
 - "enter_folder" → Entrar/abrir/navegar a una carpeta existente. value = nombre exacto o parcial de la carpeta.
+- "delete_folder" → Eliminar una carpeta existente. value = nombre exacto o parcial de la carpeta.
+- "pin_folder" → Anclar/fijar o desanclar una carpeta a favoritos. value = nombre exacto o parcial de la carpeta.
 - "exit_folder" → Salir de la carpeta actual y volver al inicio. value = "".
 - "clear_chat" → Limpiar/borrar el chat actual. value = "".
 - "toggle_theme" → Cambiar entre tema claro y oscuro. value = "".
@@ -767,6 +769,12 @@ Respuesta: {"agent_action": "create_folder", "value": "Proyectos de Python", "co
 
 Usuario: "Entra a la carpeta Matemáticas" o "Méteme a Matemáticas" o "Abre la carpeta Matemáticas"
 Respuesta: {"agent_action": "enter_folder", "value": "Matemáticas", "confirmation": "Te he llevado a la carpeta 'Matemáticas'."}
+
+Usuario: "Elimina la carpeta de pruebas"
+Respuesta: {"agent_action": "delete_folder", "value": "pruebas", "confirmation": "He eliminado la carpeta 'pruebas'."}
+
+Usuario: "Añade a favoritos la carpeta de trabajo"
+Respuesta: {"agent_action": "pin_folder", "value": "trabajo", "confirmation": "He anclado la carpeta 'trabajo' a favoritos."}
 
 Usuario: "Sal de esta carpeta" o "Vuelve al inicio"
 Respuesta: {"agent_action": "exit_folder", "value": "", "confirmation": "He salido de la carpeta actual."}
@@ -826,6 +834,46 @@ function tryExecuteAgentAction(responseText) {
                     window.enterFolder(folder.id);
                 }, 600);
                 action.confirmation = action.confirmation || `Te he llevado a la carpeta '${folder.name}'.`;
+                break;
+            }
+            case 'delete_folder': {
+                if (!action.value) return null;
+                let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+                let folder = folders.find(f => f.name.toLowerCase() === action.value.toLowerCase()) || 
+                             folders.find(f => f.name.toLowerCase().includes(action.value.toLowerCase()));
+                if (!folder) {
+                    action.confirmation = `No encontré ninguna carpeta con el nombre "${action.value}". Verifica que exista.`;
+                    action._failed = true;
+                    break;
+                }
+                folders = folders.filter(f => f.id !== folder.id);
+                localStorage.setItem('nova_folders', JSON.stringify(folders));
+                if (window.saveChatsToCloud) window.saveChatsToCloud();
+                if (window.renderFoldersGrid) window.renderFoldersGrid();
+                
+                // If we are currently inside this folder, exit it
+                if (window.currentFolderId === folder.id) {
+                    setTimeout(() => { window.exitFolder(); }, 600);
+                }
+                action.confirmation = action.confirmation || `He eliminado la carpeta '${folder.name}'.`;
+                break;
+            }
+            case 'pin_folder': {
+                if (!action.value) return null;
+                let folders = JSON.parse(localStorage.getItem('nova_folders') || '[]');
+                let folder = folders.find(f => f.name.toLowerCase() === action.value.toLowerCase()) || 
+                             folders.find(f => f.name.toLowerCase().includes(action.value.toLowerCase()));
+                if (!folder) {
+                    action.confirmation = `No encontré ninguna carpeta con el nombre "${action.value}". Verifica que exista.`;
+                    action._failed = true;
+                    break;
+                }
+                folder.isFavorite = !folder.isFavorite; // Toggle
+                localStorage.setItem('nova_folders', JSON.stringify(folders));
+                if (window.saveChatsToCloud) window.saveChatsToCloud();
+                if (window.renderFoldersGrid) window.renderFoldersGrid();
+                
+                action.confirmation = action.confirmation || (folder.isFavorite ? `He anclado la carpeta '${folder.name}' a favoritos.` : `He desanclado la carpeta '${folder.name}'.`);
                 break;
             }
             case 'exit_folder': {
